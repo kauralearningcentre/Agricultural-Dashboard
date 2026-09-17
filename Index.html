@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -23,6 +24,7 @@
                         kaura: {
                             50: '#f0fdf4',
                             100: '#dcfce7',
+                            200: '#bbf7d0',
                             500: '#22c55e',
                             600: '#16a34a',
                             700: '#15803d',
@@ -55,35 +57,44 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col custom-scrollbar">
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col custom-scrollbar antialiased">
 
-    <header class="bg-gradient-to-r from-kaura-900 via-kaura-800 to-emerald-800 text-white shadow-lg sticky top-0 z-40">
+    <header class="bg-gradient-to-r from-kaura-900 via-kaura-800 to-emerald-800 text-white shadow-xl sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                 
-                <!-- Brand Logo & Title -->
+                <!-- Brand Logo -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
                         <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 text-xl font-bold shadow-inner shrink-0">
                             <i class="fa-solid fa-seedling"></i>
                         </div>
                         <div>
-                            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight">KAURA FARM MONITORING</h1>
-                            <p class="text-[11px] sm:text-xs text-emerald-200">Crop Monitoring & Dedicated Harvest Logs</p>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight">KAURA SMART FARM</h1>
+                                <span class="bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
+                            </div>
+                            <p class="text-[11px] sm:text-xs text-emerald-200/90">Crop Monitoring & Harvest Savings Tracker</p>
                         </div>
                     </div>
 
-                    <!-- Sync Button Mobile View -->
-                    <button onclick="fetchDataFromGoogleSheet()" class="md:hidden p-2 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-all flex items-center justify-center shadow" title="Sync Sheet Data">
-                        <i class="fa-solid fa-rotate" id="sync-icon-mobile"></i>
-                    </button>
+                    <!-- Actions Mobile View -->
+                    <div class="flex items-center gap-2 md:hidden">
+                        <button onclick="toggleSound()" id="sound-btn-mobile" class="p-2 rounded-lg text-xs bg-white/10 text-white hover:bg-white/20 transition-all" title="Toggle Sound Feedback">
+                            <i class="fa-solid fa-volume-high" id="sound-icon-mobile"></i>
+                        </button>
+                        <button onclick="fetchDataFromGoogleSheet()" class="p-2 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-all flex items-center justify-center shadow" title="Sync Sheet Data">
+                            <i class="fa-solid fa-rotate" id="sync-icon-mobile"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- App Mode Navigation Tabs (Scrollable on Mobile) -->
+                <!-- Navigation Tabs (Without Reports & Export) -->
                 <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1">
                     <button id="btn-sync-sheet" onclick="fetchDataFromGoogleSheet()" class="hidden md:flex px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-all items-center gap-2 shadow shrink-0">
                         <i class="fa-solid fa-rotate" id="sync-icon"></i> <span id="sync-btn-text">Sync Google Sheets</span>
                     </button>
+                    
                     <button id="nav-btn-dashboard" onclick="switchTab('dashboard')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-white/20 text-white shadow shrink-0">
                         <i class="fa-solid fa-chart-pie"></i> Dashboard
                     </button>
@@ -99,6 +110,10 @@
                     <button id="nav-btn-config" onclick="switchTab('config')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0">
                         <i class="fa-solid fa-sliders"></i> Settings
                     </button>
+
+                    <button onclick="toggleSound()" id="sound-btn-desktop" class="hidden md:flex p-2 rounded-lg text-xs bg-white/10 text-white hover:bg-white/20 transition-all shrink-0" title="Toggle Sound Chime">
+                        <i class="fa-solid fa-volume-high" id="sound-icon-desktop"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -106,18 +121,35 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
 
-        <!-- Connection Status Banner -->
-        <div id="sync-status-banner" class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
-            <div class="flex items-center gap-2.5">
-                <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                <span id="sync-text" class="text-slate-600 font-medium">Connection Status: Fetching data from Google Sheets...</span>
+        <!-- Connection Status & Smart Farm Widget -->
+        <div class="flex flex-col lg:flex-row gap-3">
+            <div id="sync-status-banner" class="flex-grow bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+                <div class="flex items-center gap-2.5">
+                    <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span id="sync-text" class="text-slate-600 font-medium">Connection Status: Ready to sync with Google Sheets...</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400 font-mono text-[11px] truncate max-w-full">Sheet ID: 1pnF1u...ADau4</span>
+                </div>
             </div>
-            <span class="text-slate-400 font-mono text-[11px] truncate max-w-full">Sheet ID: 1pnF1u...ADau4</span>
+
+            <!-- Weather Pill -->
+            <div class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white px-4 py-3 rounded-xl border border-emerald-700 shadow-sm flex items-center justify-between gap-4 text-xs shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-sun text-amber-300 text-lg"></i>
+                    <div>
+                        <span class="font-bold">Kaura Farm, Bali</span>
+                        <p class="text-[10px] text-emerald-200">29°C • 78% Humidity • Optimal Soil</p>
+                    </div>
+                </div>
+                <span class="bg-emerald-700/60 px-2 py-1 rounded text-[10px] font-semibold border border-emerald-500/30">Zone A-C</span>
+            </div>
         </div>
 
         <!-- ================= VIEW 1: DASHBOARD ================= -->
         <section id="view-dashboard" class="space-y-6">
 
+            <!-- Harvest Alert Banner -->
             <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-700 rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
                 <div class="absolute -right-6 -bottom-6 text-white/10 text-8xl sm:text-9xl font-black select-none pointer-events-none">
                     <i class="fa-solid fa-basket-shopping"></i>
@@ -130,7 +162,7 @@
                             </div>
                             <div>
                                 <h2 class="text-base sm:text-lg font-extrabold tracking-wide uppercase">HARVEST ALERT THIS WEEK</h2>
-                                <p class="text-xs text-amber-100">Crops marked as "Ready for Harvest". Click "Record Yield" to log harvest mass in <code class="bg-black/20 px-1 rounded">Log_Panen</code>.</p>
+                                <p class="text-xs text-amber-100">Crops marked as "Ready for Harvest". Click "Record Yield" to log harvest mass in <code class="bg-black/20 px-1 rounded font-mono">Log_Panen</code>.</p>
                             </div>
                         </div>
                         <span id="ready-count-text" class="bg-amber-400 text-amber-950 font-extrabold text-xs px-3 py-1 rounded-full shadow shrink-0">0 Crops</span>
@@ -142,7 +174,7 @@
                 </div>
             </div>
 
-            <!-- Stats Metric Grid -->
+            <!-- Stat Cards including Harvest Savings Metric -->
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                 <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold shrink-0">
@@ -166,17 +198,6 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold shrink-0">
-                        <i class="fa-solid fa-basket-shopping"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">Harvested</p>
-                        <h3 class="text-lg sm:text-xl font-extrabold text-emerald-700" id="stat-harvested-count">0</h3>
-                        <p class="text-[10px] text-emerald-600 font-medium truncate">Completed</p>
-                    </div>
-                </div>
-
                 <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-teal-200 bg-teal-50/30 shadow-sm flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center text-lg font-bold shrink-0">
                         <i class="fa-solid fa-weight-scale"></i>
@@ -185,6 +206,18 @@
                         <p class="text-[10px] sm:text-[11px] font-semibold text-teal-800 uppercase truncate">Total Yield</p>
                         <h3 class="text-lg sm:text-xl font-extrabold text-teal-700" id="stat-total-weight">0 kg</h3>
                         <p class="text-[10px] text-teal-600 font-medium truncate">From Log_Panen</p>
+                    </div>
+                </div>
+
+                <!-- Savings Metric Card (Yield x Price/kg) -->
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-300 bg-emerald-50/40 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1 lg:col-span-1">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase truncate">Est. Cost Savings</p>
+                        <h3 class="text-base sm:text-lg font-black text-emerald-700 truncate" id="stat-total-savings">Rp 0</h3>
+                        <p class="text-[10px] text-emerald-600 font-medium truncate">Kaura Harvest Value</p>
                     </div>
                 </div>
 
@@ -211,7 +244,6 @@
                 </div>
             </div>
 
-            <!-- Dashboard Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Doughnut Chart -->
                 <div class="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -254,15 +286,14 @@
                 </div>
             </div>
 
-            <!-- Dashboard Crop Table -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Crop Status & Location Overview</h3>
+                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Crop Status, Pricing & Location Overview</h3>
                             <span id="total-rows-tag" class="bg-emerald-100 text-emerald-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Crops</span>
                         </div>
-                        <p class="text-xs text-slate-500">Live plant tracking table.</p>
+                        <p class="text-xs text-slate-500">Live plant tracking table. Click any row to open crop details.</p>
                     </div>
 
                     <!-- Search & Filters -->
@@ -297,15 +328,15 @@
 
                 <!-- Responsive Table Wrapper -->
                 <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[650px]">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[700px]">
                         <thead class="bg-slate-100/80 text-slate-700 font-semibold text-xs uppercase border-b border-slate-200">
                             <tr>
                                 <th class="py-3 px-3.5 w-12 text-center">No</th>
                                 <th class="py-3 px-3.5">Crop Name</th>
                                 <th class="py-3 px-3.5">Location / Zone</th>
+                                <th class="py-3 px-3.5 text-right">Price / kg (Cell D)</th>
                                 <th class="py-3 px-3.5 text-center">Active Stage</th>
-                                <th class="py-3 px-3.5 text-center">Stage Progress</th>
-                                <th class="py-3 px-3.5 text-center">Harvest Status</th>
+                                <th class="py-3 px-3.5 text-center">Harvest Status & Savings</th>
                                 <th class="py-3 px-3.5 text-right">Action</th>
                             </tr>
                         </thead>
@@ -328,7 +359,7 @@
                             <i class="fa-solid fa-calendar-check"></i> WEEKLY ROUTINE INSPECTION
                         </div>
                         <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Kaura Crop Growth Stage Inspection</h2>
-                        <p class="text-xs text-slate-500 mt-1">Select updated growth stage for each crop. Data is saved per location into Google Sheet (<code class="bg-slate-100 px-1 py-0.5 rounded">Log_Monitoring</code>).</p>
+                        <p class="text-xs text-slate-500 mt-1">Select updated growth stage for each crop. Data is saved per location into Google Sheet (<code class="bg-slate-100 px-1 py-0.5 rounded font-mono">Log_Monitoring</code>).</p>
                     </div>
 
                     <!-- Inspection Metadata -->
@@ -344,9 +375,18 @@
                     </div>
                 </div>
 
-                <!-- Location Selector Filter Tabs -->
-                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-4" id="form-location-tabs">
-                    <!-- Dynamic location tabs -->
+                <!-- Location Selector Filter Tabs & Bulk Actions -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 w-full sm:w-auto" id="form-location-tabs">
+                        <!-- Dynamic location tabs -->
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="clearFormSelections()" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-lg transition-colors">
+                            <i class="fa-solid fa-eraser"></i> Clear Checks
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Desktop Form Table View -->
@@ -394,11 +434,11 @@
             </div>
         </section>
 
-        <!-- ================= VIEW 3: HARVEST YIELD LOG (NEW DEDICATED TAB) ================= -->
+        <!-- ================= VIEW 3: HARVEST YIELD LOG ================= -->
         <section id="view-yield" class="hidden space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                <!-- Form Input Harvest Mass (Dedicated) -->
+                <!-- Form Input Harvest Mass -->
                 <div class="bg-white p-5 sm:p-6 rounded-2xl border border-teal-200 shadow-sm space-y-4">
                     <div class="border-b border-slate-200 pb-3">
                         <div class="flex items-center gap-2 text-teal-700 font-bold text-xs mb-1">
@@ -427,9 +467,14 @@
                                 <input type="text" id="yield-location" readonly placeholder="Auto location" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 bg-slate-100 text-slate-600 rounded-xl">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Harvest Mass (kg)</label>
-                                <input type="number" step="0.01" min="0.01" id="yield-weight" required placeholder="e.g. 12.5" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-teal-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-teal-900 bg-teal-50/30">
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Price / kg (Cell D)</label>
+                                <input type="text" id="yield-price-display" readonly placeholder="Auto price" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 bg-emerald-50 text-emerald-800 font-bold rounded-xl">
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Harvest Mass (kg)</label>
+                            <input type="number" step="0.01" min="0.01" id="yield-weight" required placeholder="e.g. 12.5" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-teal-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-teal-900 bg-teal-50/30">
                         </div>
 
                         <div>
@@ -453,20 +498,24 @@
                     <div>
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 pb-3 border-b border-slate-200">
                             <div>
-                                <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">Harvest Yield Registry (<code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs text-teal-800">Log_Panen</code>)</h3>
-                                <p class="text-xs text-slate-500">History of recorded harvest weight entries.</p>
+                                <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">Harvest Yield Registry (<code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs text-teal-800 font-mono">Log_Panen</code>)</h3>
+                                <p class="text-xs text-slate-500">History of recorded harvest weight entries and calculated savings value.</p>
                             </div>
-                            <span id="yield-total-badge" class="bg-teal-100 text-teal-800 font-extrabold text-xs px-3 py-1 rounded-full border border-teal-200">Total: 0 kg</span>
+                            <div class="flex items-center gap-2">
+                                <span id="yield-total-badge" class="bg-teal-100 text-teal-800 font-extrabold text-xs px-3 py-1 rounded-full border border-teal-200">Total: 0 kg</span>
+                                <span id="yield-savings-badge" class="bg-emerald-100 text-emerald-800 font-extrabold text-xs px-3 py-1 rounded-full border border-emerald-200">Saved: Rp 0</span>
+                            </div>
                         </div>
 
                         <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[500px]">
+                            <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[550px]">
                                 <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[11px] border-b border-slate-200">
                                     <tr>
                                         <th class="py-2.5 px-3">Date</th>
                                         <th class="py-2.5 px-3">Crop Name</th>
                                         <th class="py-2.5 px-3">Location</th>
                                         <th class="py-2.5 px-3 text-right">Yield Mass</th>
+                                        <th class="py-2.5 px-3 text-right">Cost Savings (Rp)</th>
                                         <th class="py-2.5 px-3">Harvester</th>
                                     </tr>
                                 </thead>
@@ -478,7 +527,7 @@
                     </div>
 
                     <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 flex justify-between items-center">
-                        <span><i class="fa-solid fa-circle-info text-teal-600 mr-1"></i> Data logged in <code class="bg-slate-100 px-1 rounded text-slate-700">Log_Panen</code> sheet independently.</span>
+                        <span><i class="fa-solid fa-circle-info text-teal-600 mr-1"></i> Data logged in <code class="bg-slate-100 px-1 rounded text-slate-700 font-mono">Log_Panen</code> sheet independently.</span>
                         <button onclick="clearYieldLogs()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
                             <i class="fa-solid fa-trash"></i> Clear Local Yields
                         </button>
@@ -488,13 +537,13 @@
             </div>
         </section>
 
-        <!-- ================= VIEW 4: INSPECTION HISTORY ================= -->
+        <!-- ================= VIEW 5: INSPECTION HISTORY ================= -->
         <section id="view-history" class="hidden space-y-6">
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
                     <div>
                         <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Weekly Inspection Logs</h2>
-                        <p class="text-xs text-slate-500">Historical snapshots of saved weekly inspection runs (<code class="bg-slate-100 px-1 py-0.5 rounded">Log_Monitoring</code>).</p>
+                        <p class="text-xs text-slate-500">Historical snapshots of saved weekly inspection runs (<code class="bg-slate-100 px-1 py-0.5 rounded font-mono">Log_Monitoring</code>).</p>
                     </div>
                     <button onclick="clearHistoryLogs()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
                         <i class="fa-solid fa-trash"></i> Clear Inspection History
@@ -507,7 +556,7 @@
             </div>
         </section>
 
-        <!-- ================= VIEW 5: CONFIG & SETTINGS ================= -->
+        <!-- ================= VIEW 6: CONFIG & SETTINGS ================= -->
         <section id="view-config" class="hidden space-y-6">
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
                 <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
@@ -526,7 +575,7 @@
                         <i class="fa-solid fa-layer-group text-amber-600"></i> Kaura Monitoring 3-Sheet Architecture:
                     </h4>
                     <ol class="list-decimal list-inside space-y-1.5 mt-2 font-medium">
-                        <li><strong>Sheet 1 ("Data Tanaman"):</strong> Master crop registry (Column A: <code>No</code>, Column B: <code>Nama Tanaman</code>, Column C: <code>Lokasi</code>).</li>
+                        <li><strong>Sheet 1 ("Data Tanaman"):</strong> Master crop registry (Column A: <code>No</code>, Column B: <code>Nama Tanaman</code>, Column C: <code>Lokasi</code>, Column D: <code>Harga/kg</code>).</li>
                         <li><strong>Sheet 2 ("Log_Monitoring"):</strong> Weekly growth stage logs (<code>Tanggal</code>, <code>No</code>, <code>Nama Tanaman</code>, <code>Lokasi</code>, <code>Perkecambahan</code>, <code>Pertumbuhan Awal</code>, <code>Pertumbuhan Maksimal</code>, <code>Pematangan</code>, <code>Siap Panen</code>, <code>Telah Dipanen</code>, <code>Catatan</code>, <code>Auditor</code>).</li>
                         <li><strong>Sheet 3 ("Log_Panen"):</strong> Independent harvest yield entries (<code>Tanggal</code>, <code>No</code>, <code>Nama Tanaman</code>, <code>Lokasi</code>, <code>Massa Panen (kg)</code>, <code>Catatan</code>, <code>Petugas Panen</code>).</li>
                     </ol>
@@ -542,7 +591,7 @@
                             Save Endpoint
                         </button>
                     </div>
-                    <p class="text-xs text-slate-500">Connecting this URL enables dual-sheet reading and multi-sheet writing to <code class="bg-slate-200 px-1 rounded text-slate-700">Log_Monitoring</code> and <code class="bg-slate-200 px-1 rounded text-slate-700">Log_Panen</code>.</p>
+                    <p class="text-xs text-slate-500">Connecting this URL enables dual-sheet reading and multi-sheet writing to <code class="bg-slate-200 px-1 rounded text-slate-700 font-mono">Log_Monitoring</code> and <code class="bg-slate-200 px-1 rounded text-slate-700 font-mono">Log_Panen</code>.</p>
                 </div>
 
                 <!-- Apps Script Code Snippet -->
@@ -555,12 +604,12 @@
                             <i class="fa-solid fa-copy"></i> Copy Code
                         </button>
                         <pre id="apps-script-code">
-// Apps Script Code for 3 Sheets: "Data Tanaman", "Log_Monitoring", & "Log_Panen"
+// Apps Script Code for 3 Sheets: "Data Tanaman" (Cell D: Harga/kg), "Log_Monitoring", & "Log_Panen"
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 1. Fetch Master Crop List
+    // 1. Fetch Master Crop List (Col A: No, Col B: Nama, Col C: Lokasi, Col D: Harga/kg)
     var sheetMaster = ss.getSheetByName("Data Tanaman");
     var dataTanaman = sheetMaster ? sheetMaster.getDataRange().getValues() : [];
     
@@ -664,8 +713,49 @@ function doPost(e) {
             </div>
             <div class="pt-2">
                 <button onclick="closeNotificationModal()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all">
-                    Close & View Dashboard
+                    Close
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crop Details Inspector -->
+    <div id="crop-detail-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-4">
+            <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div>
+                    <span id="detail-crop-no" class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">#1</span>
+                    <h3 id="detail-crop-name" class="font-extrabold text-slate-800 text-lg sm:text-xl mt-1">Crop Details</h3>
+                    <p id="detail-crop-loc" class="text-xs text-slate-500"></p>
+                </div>
+                <button onclick="closeCropDetailModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <span class="text-slate-400 font-semibold block uppercase text-[10px]">Price / kg</span>
+                        <p id="detail-crop-price" class="font-bold text-slate-800 text-sm mt-0.5">Rp 0</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block uppercase text-[10px]">Total Yield</span>
+                        <p id="detail-crop-yield" class="font-extrabold text-teal-700 text-sm mt-0.5">0 kg</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block uppercase text-[10px]">Est. Savings</span>
+                        <p id="detail-crop-savings" class="font-extrabold text-emerald-700 text-sm mt-0.5">Rp 0</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-700 mb-2">Field Notes & Logs:</h4>
+                    <p id="detail-crop-notes" class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-600 italic">-</p>
+                </div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                <button onclick="quickOpenYieldFromDetail()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-lg shadow">
+                    <i class="fa-solid fa-weight-scale mr-1"></i> Log Harvest Mass
+                </button>
+                <button onclick="closeCropDetailModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Close</button>
             </div>
         </div>
     </div>
@@ -682,9 +772,15 @@ function doPost(e) {
                     <label class="block text-xs font-bold text-slate-600 mb-1">Crop Name</label>
                     <input type="text" id="new-plant-name" placeholder="e.g. Romaine Lettuce" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Location / Zone</label>
-                    <input type="text" id="new-plant-loc" placeholder="e.g. Wing 1" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Location / Zone</label>
+                        <input type="text" id="new-plant-loc" placeholder="e.g. Wing 1" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Price / kg (Rp)</label>
+                        <input type="number" id="new-plant-price" placeholder="e.g. 15000" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">Initial Growth Stage</label>
@@ -714,13 +810,17 @@ function doPost(e) {
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-base sm:text-lg">Update Growth Status</h3>
+                    <h3 class="font-bold text-slate-800 text-base sm:text-lg">Update Growth & Price</h3>
                     <p id="quick-plant-title" class="text-xs text-emerald-600 font-semibold"></p>
                 </div>
                 <button onclick="closeQuickUpdateModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <input type="hidden" id="quick-plant-no">
             <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Price per kg (Rp) - Cell D</label>
+                    <input type="number" id="quick-plant-price" placeholder="e.g. 15000" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">Active Growth Stage</label>
                     <select id="quick-plant-stage" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
@@ -758,6 +858,8 @@ function doPost(e) {
         let historyLogs = JSON.parse(localStorage.getItem('kaura_history_logs')) || [];
         let webhookUrl = localStorage.getItem('kaura_webhook_url') || '';
         let activeFormLocationFilter = 'ALL';
+        let soundEnabled = localStorage.getItem('kaura_sound_enabled') !== 'false';
+        let activeSelectedCropNo = null;
 
         // Unselected radio form buffers
         let formSelections = {};
@@ -780,8 +882,55 @@ function doPost(e) {
                 if (urlInput) urlInput.value = webhookUrl;
             }
 
+            updateSoundIcons();
             fetchDataFromGoogleSheet();
         });
+
+        function playChimeSound() {
+            if (!soundEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.3); // G5
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } catch (e) {
+                // Audio context fallback
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('kaura_sound_enabled', soundEnabled);
+            updateSoundIcons();
+            showNotification(soundEnabled ? "🔊 Sound Feedback Enabled" : "🔇 Sound Feedback Muted");
+        }
+
+        function updateSoundIcons() {
+            const iconD = document.getElementById('sound-icon-desktop');
+            const iconM = document.getElementById('sound-icon-mobile');
+            const cls = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark text-slate-400";
+            if (iconD) iconD.className = cls;
+            if (iconM) iconM.className = cls;
+        }
+
+        function formatIDR(amount) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount || 0);
+        }
 
         function switchTab(tabName) {
             const views = ['dashboard', 'form', 'yield', 'history', 'config'];
@@ -893,6 +1042,7 @@ function doPost(e) {
                                 no: p.no,
                                 name: p.name,
                                 location: p.location,
+                                price: p.price || 0,
                                 stage: latestLog.stage,
                                 notes: latestLog.notes
                             };
@@ -901,6 +1051,7 @@ function doPost(e) {
                                 no: p.no,
                                 name: p.name,
                                 location: p.location,
+                                price: p.price || 0,
                                 stage: "Perkecambahan",
                                 notes: "-"
                             };
@@ -939,6 +1090,7 @@ function doPost(e) {
             }
         }
 
+        // Parse Master Sheet GViz (Col A: No, Col B: Name, Col C: Location, Col D: Price/kg)
         function parseGvizMasterJson(gvizText) {
             const items = [];
             try {
@@ -956,7 +1108,8 @@ function doPost(e) {
                     if (!isNaN(plantNo) && plantNo > 0) {
                         const name = c[1]?.v ? String(c[1].v).trim() : `Crop #${plantNo}`;
                         const location = c[2]?.v ? String(c[2].v).trim() : 'Wing 1';
-                        items.push({ no: plantNo, name: name, location: location });
+                        const price = c[3]?.v ? parseFloat(c[3].v) || 0 : 0;
+                        items.push({ no: plantNo, name: name, location: location, price: price });
                     }
                 });
             } catch (err) {
@@ -974,7 +1127,8 @@ function doPost(e) {
                     items.push({
                         no: plantNo,
                         name: String(row[1] || `Crop #${plantNo}`).trim(),
-                        location: String(row[2] || "Wing 1").trim()
+                        location: String(row[2] || "Wing 1").trim(),
+                        price: parseFloat(row[3] || 0) || 0
                     });
                 }
             });
@@ -1123,12 +1277,20 @@ function doPost(e) {
             // Total yield mass calculated from dedicated yieldLogs (Log_Panen)
             const totalWeight = yieldLogs.reduce((sum, y) => sum + (parseFloat(y.weight) || 0), 0);
 
+            // Calculate Total Cost Savings: Sum of (Yield Weight * Price per kg from Cell D)
+            let totalSavings = 0;
+            yieldLogs.forEach(y => {
+                const plant = plantsState.find(p => p.no === y.no || p.name === y.name);
+                const price = plant ? (parseFloat(plant.price) || 0) : 0;
+                totalSavings += (parseFloat(y.weight) || 0) * price;
+            });
+
             const locations = [...new Set(plantsState.map(p => p.location))].filter(Boolean);
 
             document.getElementById('stat-total-plants').innerText = total;
             document.getElementById('stat-ready-harvest').innerText = readyCount;
-            document.getElementById('stat-harvested-count').innerText = harvestedCount;
             document.getElementById('stat-total-weight').innerText = `${totalWeight.toFixed(1)} kg`;
+            document.getElementById('stat-total-savings').innerText = formatIDR(totalSavings);
             document.getElementById('stat-growing').innerText = growingCount;
             document.getElementById('stat-total-zones').innerText = locations.length;
             document.getElementById('total-rows-tag').innerText = `${total} Crops`;
@@ -1161,7 +1323,7 @@ function doPost(e) {
                                 <div class="min-w-0 pr-2">
                                     <h4 class="font-bold text-white text-xs sm:text-sm truncate">${item.name}</h4>
                                     <span class="text-[11px] text-amber-200 font-medium truncate block">
-                                        <i class="fa-solid fa-location-dot mr-1"></i>${item.location}
+                                        <i class="fa-solid fa-location-dot mr-1"></i>${item.location} • ${item.price ? formatIDR(item.price) + '/kg' : 'No price'}
                                     </span>
                                 </div>
                                 <button onclick="quickOpenYieldEntry(${item.no})" class="bg-amber-400 hover:bg-amber-300 text-amber-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow shrink-0">
@@ -1211,11 +1373,22 @@ function doPost(e) {
                 const isReady = p.stage === 'Siap Panen';
                 const isHarvested = p.stage === 'Telah Dipanen';
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition-colors";
+                row.className = "hover:bg-slate-50 transition-colors cursor-pointer";
+                row.onclick = (e) => {
+                    if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        openCropDetailModal(p.no);
+                    }
+                };
+
+                // Sum harvest yield from yieldLogs for this plant
+                const cropYields = yieldLogs.filter(y => y.no === p.no || y.name === p.name);
+                const cropTotalWeight = cropYields.reduce((sum, y) => sum + y.weight, 0);
+                const cropSavings = cropTotalWeight * (p.price || 0);
+                const hasYieldRecord = cropTotalWeight > 0;
 
                 let stageDisplay = getEnglishStageName(p.stage);
                 let stageBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">${stageDisplay}</span>`;
-                if (isHarvested) {
+                if (isHarvested || hasYieldRecord) {
                     stageBadge = `<span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">🧺 Harvested</span>`;
                 } else if (isReady) {
                     stageBadge = `<span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">🌾 Ready for Harvest</span>`;
@@ -1225,14 +1398,11 @@ function doPost(e) {
                     stageBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Peak Growth</span>`;
                 }
 
-                // Sum harvest yield from yieldLogs for this plant
-                const cropYields = yieldLogs.filter(y => y.no === p.no || y.name === p.name);
-                const cropTotalWeight = cropYields.reduce((sum, y) => sum + y.weight, 0);
-
                 let harvestIndicator = '<span class="text-xs text-slate-400 font-medium">In Growth</span>';
-                if (isHarvested || cropTotalWeight > 0) {
+                if (isHarvested || hasYieldRecord) {
                     const weightBadge = cropTotalWeight > 0 ? `<span class="text-[10px] bg-teal-600 text-white font-bold px-1.5 py-0.5 rounded ml-1">${cropTotalWeight.toFixed(1)} kg</span>` : '';
-                    harvestIndicator = `<span class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full"><i class="fa-solid fa-check text-emerald-600"></i> HARVESTED ${weightBadge}</span>`;
+                    const savingsBadge = cropSavings > 0 ? `<span class="text-[10px] bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded ml-1">${formatIDR(cropSavings)}</span>` : '';
+                    harvestIndicator = `<span class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full"><i class="fa-solid fa-check text-emerald-600"></i> HARVESTED ${weightBadge} ${savingsBadge}</span>`;
                 } else if (isReady) {
                     harvestIndicator = '<span class="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 bg-amber-100 px-3 py-1 rounded-full animate-pulse"><i class="fa-solid fa-basket-shopping"></i> READY</span>';
                 }
@@ -1241,20 +1411,17 @@ function doPost(e) {
                     <td class="py-3 px-3.5 font-medium text-slate-400 text-center">${p.no}</td>
                     <td class="py-3 px-3.5">
                         <span class="font-bold text-slate-800 text-xs sm:text-sm block">${p.name}</span>
-                        <span class="text-[11px] text-slate-400 block truncate max-w-[200px]">${p.notes || '-'}</span>
+                        <span class="text-[11px] text-slate-400 block truncate max-w-[180px]">${p.notes || '-'}</span>
                     </td>
                     <td class="py-3 px-3.5">
                         <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
                             <i class="fa-solid fa-location-dot text-slate-400 text-[10px]"></i> ${p.location}
                         </span>
                     </td>
-                    <td class="py-3 px-3.5 text-center">${stageBadge}</td>
-                    <td class="py-3 px-3.5 text-center">
-                        <div class="w-full bg-slate-100 rounded-full h-2 max-w-[90px] mx-auto overflow-hidden">
-                            <div class="bg-emerald-500 h-2 rounded-full" style="width: ${getStagePercentage(p.stage)}%"></div>
-                        </div>
-                        <span class="text-[10px] text-slate-400">${getStagePercentage(p.stage)}% stage</span>
+                    <td class="py-3 px-3.5 text-right font-bold text-slate-800 text-xs">
+                        ${p.price ? formatIDR(p.price) : '<span class="text-slate-400 font-normal">Not set</span>'}
                     </td>
+                    <td class="py-3 px-3.5 text-center">${stageBadge}</td>
                     <td class="py-3 px-3.5 text-center">
                         ${harvestIndicator}
                     </td>
@@ -1262,8 +1429,8 @@ function doPost(e) {
                         <button onclick="quickOpenYieldEntry(${p.no})" class="text-xs text-teal-700 bg-teal-50 hover:bg-teal-100 font-semibold border border-teal-200 px-2 py-1 rounded-lg transition-all" title="Record Harvest Mass">
                             <i class="fa-solid fa-weight-scale"></i> Yield
                         </button>
-                        <button onclick="quickUpdateStage(${p.no})" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-all" title="Change Growth Stage">
-                            Stage
+                        <button onclick="quickUpdateStage(${p.no})" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-all" title="Edit Growth Stage & Price">
+                            Edit
                         </button>
                     </td>
                 `;
@@ -1280,18 +1447,6 @@ function doPost(e) {
                 case 'Siap Panen': return 'Ready for Harvest';
                 case 'Telah Dipanen': return 'Harvested';
                 default: return stage || 'Germination';
-            }
-        }
-
-        function getStagePercentage(stage) {
-            switch(stage) {
-                case 'Perkecambahan': return 20;
-                case 'Pertumbuhan Awal': return 40;
-                case 'Pertumbuhan Maksimal': return 60;
-                case 'Pematangan': return 80;
-                case 'Siap Panen': return 95;
-                case 'Telah Dipanen': return 100;
-                default: return 10;
             }
         }
 
@@ -1403,6 +1558,13 @@ function doPost(e) {
             formNotes[plantNo] = val;
         }
 
+        function clearFormSelections() {
+            formSelections = {};
+            formNotes = {};
+            renderFormTable();
+            showNotification("Form selections cleared.");
+        }
+
         function renderFormTable() {
             const tbody = document.getElementById('form-table-body');
             const mobileContainer = document.getElementById('form-mobile-cards-container');
@@ -1484,7 +1646,7 @@ function doPost(e) {
                 `;
                 tbody.appendChild(tr);
 
-                // Mobile Friendly Touch Card
+                // Mobile Touch Card View
                 if (mobileContainer) {
                     const card = document.createElement('div');
                     card.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3";
@@ -1547,7 +1709,13 @@ function doPost(e) {
                 }
             });
 
+            if (inspectedCount === 0) {
+                showModalNotification("Selection Required", "Please select a growth stage for at least one crop before saving the inspection.", "amber");
+                return;
+            }
+
             saveStateToLocalStorage();
+            playChimeSound();
 
             const locationLabel = activeFormLocationFilter === 'ALL' ? 'All Locations' : activeFormLocationFilter;
             const logEntry = {
@@ -1557,60 +1725,55 @@ function doPost(e) {
                 inspector: inspectorVal || 'Kaura Field Team',
                 totalPlants: targetPlants.length,
                 readyCount: targetPlants.filter(p => p.stage === 'Siap Panen').length,
-                harvestedCount: targetPlants.filter(p => p.stage === 'Telah Dipanen').length,
+                harvestedCount: targetPlants.filter(p => p.stage === 'Telah Dipanen' || yieldLogs.some(y => y.no === p.no)).length,
                 snapshot: JSON.parse(JSON.stringify(targetPlants))
             };
 
             historyLogs.unshift(logEntry);
             localStorage.setItem('kaura_history_logs', JSON.stringify(historyLogs));
 
-            let sheetSyncMessage = "Data saved to browser memory.";
-            if (webhookUrl) {
-                try {
-                    const payload = {
-                        type: 'inspection',
-                        date: dateVal,
-                        inspector: inspectorVal,
-                        locationFilter: locationLabel,
-                        items: targetPlants.map(p => ({
-                            no: p.no,
-                            name: p.name,
-                            location: p.location,
-                            perkecambahan: p.stage === 'Perkecambahan',
-                            pertumbuhanAwal: p.stage === 'Pertumbuhan Awal',
-                            pertumbuhanMaks: p.stage === 'Pertumbuhan Maksimal',
-                            pematangan: p.stage === 'Pematangan',
-                            siapPanen: p.stage === 'Siap Panen',
-                            telahDipanen: p.stage === 'Telah Dipanen',
-                            notes: p.notes
-                        }))
-                    };
-
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    sheetSyncMessage = `Data for area [${locationLabel}] (${targetPlants.length} crops) posted to Google Sheet Log_Monitoring!`;
-                } catch(e) {
-                    sheetSyncMessage = "Failed to reach Apps Script Webhook. Data stored in local storage.";
-                }
-            }
-
             formSelections = {};
             formNotes = {};
-
             renderFormTable();
+            renderDashboard();
+            renderHistoryLogs();
+
+            let sheetSyncMessage = "Data saved locally. Syncing with Google Sheets in background...";
+            if (webhookUrl) {
+                const payload = {
+                    type: 'inspection',
+                    date: dateVal,
+                    inspector: inspectorVal,
+                    locationFilter: locationLabel,
+                    items: targetPlants.map(p => ({
+                        no: p.no,
+                        name: p.name,
+                        location: p.location,
+                        perkecambahan: p.stage === 'Perkecambahan',
+                        pertumbuhanAwal: p.stage === 'Pertumbuhan Awal',
+                        pertumbuhanMaks: p.stage === 'Pertumbuhan Maksimal',
+                        pematangan: p.stage === 'Pematangan',
+                        siapPanen: p.stage === 'Siap Panen',
+                        telahDipanen: p.stage === 'Telah Dipanen',
+                        notes: p.notes
+                    }))
+                };
+
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(e => console.warn("Background sync error:", e));
+
+                sheetSyncMessage = `Data for area [${locationLabel}] (${targetPlants.length} crops) sent to Google Sheet in background!`;
+            }
 
             showModalNotification(
                 "Inspection Saved! 🎉",
                 `Weekly inspection results for area <strong>${locationLabel}</strong> (${inspectedCount} updated out of ${targetPlants.length} crops) by auditor <strong>${inspectorVal || 'Kaura Field Team'}</strong> have been saved.<br><br><span class="text-emerald-700 font-semibold">${sheetSyncMessage}</span>`,
                 "emerald"
             );
-
-            renderDashboard();
-            renderHistoryLogs();
         }
 
         function populateYieldCropDropdown() {
@@ -1621,7 +1784,8 @@ function doPost(e) {
 
             plantsState.forEach(p => {
                 const readyBadge = p.stage === 'Siap Panen' ? ' 🌾 [READY]' : '';
-                select.innerHTML += `<option value="${p.no}">#${p.no} ${p.name} (${p.location})${readyBadge}</option>`;
+                const priceBadge = p.price ? ` (${formatIDR(p.price)}/kg)` : '';
+                select.innerHTML += `<option value="${p.no}">#${p.no} ${p.name} - ${p.location}${priceBadge}${readyBadge}</option>`;
             });
 
             if (currentVal) select.value = currentVal;
@@ -1630,14 +1794,17 @@ function doPost(e) {
         function onYieldPlantSelectChange() {
             const select = document.getElementById('yield-plant-select');
             const locInput = document.getElementById('yield-location');
+            const priceDisplay = document.getElementById('yield-price-display');
             if (!select || !locInput) return;
 
             const plantNo = parseInt(select.value, 10);
             const plant = plantsState.find(p => p.no === plantNo);
             if (plant) {
                 locInput.value = plant.location;
+                if (priceDisplay) priceDisplay.value = plant.price ? formatIDR(plant.price) + ' / kg' : 'Not set';
             } else {
                 locInput.value = '';
+                if (priceDisplay) priceDisplay.value = '';
             }
         }
 
@@ -1686,46 +1853,72 @@ function doPost(e) {
             yieldLogs.unshift(yieldRecord);
             localStorage.setItem('kaura_yield_logs', JSON.stringify(yieldLogs));
 
-            // Automatically set plant stage to Telah Dipanen
+            playChimeSound();
+
             plant.stage = 'Telah Dipanen';
             saveStateToLocalStorage();
 
-            let sheetSyncMessage = "Yield recorded in local browser memory.";
-            if (webhookUrl) {
-                try {
-                    const payload = {
-                        type: 'yield',
-                        date: yieldDate,
-                        no: plant.no,
-                        name: plant.name,
-                        location: plant.location,
-                        weight: weight,
-                        harvester: harvester,
-                        notes: notes
-                    };
-
-                    await fetch(webhookUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    sheetSyncMessage = `Yield entry (${weight} kg of ${plant.name}) successfully posted to Google Sheet Log_Panen!`;
-                } catch(err) {
-                    sheetSyncMessage = "Failed to reach Webhook. Yield stored locally.";
-                }
-            }
-
-            // Reset yield weight & notes inputs
             document.getElementById('yield-weight').value = '';
             document.getElementById('yield-notes').value = '';
 
             renderYieldLogTable();
             renderDashboard();
 
+            let sheetSyncMessage = "Yield saved locally. Syncing with Google Sheets in background...";
+            if (webhookUrl) {
+                const payload = {
+                    type: 'yield',
+                    date: yieldDate,
+                    no: plant.no,
+                    name: plant.name,
+                    location: plant.location,
+                    weight: weight,
+                    harvester: harvester,
+                    notes: notes
+                };
+
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.warn("Background yield sync error:", err));
+
+                const inspectionPayload = {
+                    type: 'inspection',
+                    date: yieldDate,
+                    inspector: harvester,
+                    locationFilter: plant.location,
+                    items: [{
+                        no: plant.no,
+                        name: plant.name,
+                        location: plant.location,
+                        perkecambahan: false,
+                        pertumbuhanAwal: false,
+                        pertumbuhanMaks: false,
+                        pematangan: false,
+                        siapPanen: false,
+                        telahDipanen: true,
+                        notes: `Harvested ${weight} kg. ${notes}`
+                    }]
+                };
+
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(inspectionPayload)
+                }).catch(err => console.warn("Background inspection auto-update error:", err));
+
+                sheetSyncMessage = `Yield entry (${weight} kg of ${plant.name}) sent to Google Sheet Log_Panen in background!`;
+            }
+
+            const costSavingsVal = weight * (plant.price || 0);
+            const savingsText = costSavingsVal > 0 ? `<br>Cost Savings Achieved: <strong>${formatIDR(costSavingsVal)}</strong>` : '';
+
             showModalNotification(
                 "Harvest Yield Recorded! 🧺",
-                `Successfully logged <strong>${weight} kg</strong> of <strong>${plant.name}</strong> (${plant.location}) on ${yieldDate}.<br><br><span class="text-teal-700 font-semibold">${sheetSyncMessage}</span>`,
+                `Successfully logged <strong>${weight} kg</strong> of <strong>${plant.name}</strong> (${plant.location}) on ${yieldDate}.${savingsText}<br><br><span class="text-teal-700 font-semibold">${sheetSyncMessage}</span>`,
                 "emerald"
             );
         }
@@ -1733,17 +1926,26 @@ function doPost(e) {
         function renderYieldLogTable() {
             const tbody = document.getElementById('yield-log-table-body');
             const totalBadge = document.getElementById('yield-total-badge');
+            const savingsBadge = document.getElementById('yield-savings-badge');
             if (!tbody) return;
 
             tbody.innerHTML = '';
             const totalMass = yieldLogs.reduce((sum, y) => sum + y.weight, 0);
 
+            let totalSavings = 0;
+            yieldLogs.forEach(y => {
+                const plant = plantsState.find(p => p.no === y.no || p.name === y.name);
+                const price = plant ? (parseFloat(plant.price) || 0) : 0;
+                totalSavings += y.weight * price;
+            });
+
             if (totalBadge) totalBadge.innerText = `Total: ${totalMass.toFixed(1)} kg`;
+            if (savingsBadge) savingsBadge.innerText = `Saved: ${formatIDR(totalSavings)}`;
 
             if (yieldLogs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="py-6 text-center text-slate-400 text-xs">
+                        <td colspan="6" class="py-6 text-center text-slate-400 text-xs">
                             No harvest yields recorded yet. Fill out the form on the left to add a record.
                         </td>
                     </tr>
@@ -1752,6 +1954,10 @@ function doPost(e) {
             }
 
             yieldLogs.forEach(y => {
+                const plant = plantsState.find(p => p.no === y.no || p.name === y.name);
+                const price = plant ? (parseFloat(plant.price) || 0) : 0;
+                const savings = y.weight * price;
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
                 tr.innerHTML = `
@@ -1759,6 +1965,7 @@ function doPost(e) {
                     <td class="py-2.5 px-3 font-bold text-slate-800">${y.name}</td>
                     <td class="py-2.5 px-3"><span class="bg-slate-100 px-2 py-0.5 rounded text-[11px]">${y.location}</span></td>
                     <td class="py-2.5 px-3 text-right font-extrabold text-teal-700">${y.weight.toFixed(1)} kg</td>
+                    <td class="py-2.5 px-3 text-right font-extrabold text-emerald-700">${savings > 0 ? formatIDR(savings) : '-'}</td>
                     <td class="py-2.5 px-3 text-slate-500 text-xs">${y.harvester || 'Kaura Team'}</td>
                 `;
                 tbody.appendChild(tr);
@@ -1773,12 +1980,45 @@ function doPost(e) {
             showNotification("Local harvest yield records cleared.");
         }
 
+        function openCropDetailModal(plantNo) {
+            const plant = plantsState.find(p => p.no === plantNo);
+            if (!plant) return;
+
+            activeSelectedCropNo = plantNo;
+            document.getElementById('detail-crop-no').innerText = `#${plant.no}`;
+            document.getElementById('detail-crop-name').innerText = plant.name;
+            document.getElementById('detail-crop-loc').innerText = `Location: ${plant.location}`;
+            document.getElementById('detail-crop-price').innerText = plant.price ? formatIDR(plant.price) : 'Not set';
+            document.getElementById('detail-crop-notes').innerText = plant.notes || 'No field notes recorded yet.';
+
+            const cropYields = yieldLogs.filter(y => y.no === plant.no || y.name === plant.name);
+            const totalW = cropYields.reduce((sum, y) => sum + y.weight, 0);
+            const cropSavings = totalW * (plant.price || 0);
+
+            document.getElementById('detail-crop-yield').innerText = `${totalW.toFixed(1)} kg (${cropYields.length} entries)`;
+            document.getElementById('detail-crop-savings').innerText = formatIDR(cropSavings);
+
+            document.getElementById('crop-detail-modal')?.classList.remove('hidden');
+        }
+
+        function closeCropDetailModal() {
+            document.getElementById('crop-detail-modal')?.classList.add('hidden');
+        }
+
+        function quickOpenYieldFromDetail() {
+            closeCropDetailModal();
+            if (activeSelectedCropNo) {
+                quickOpenYieldEntry(activeSelectedCropNo);
+            }
+        }
+
         function quickUpdateStage(plantNo) {
             const plant = plantsState.find(p => p.no === plantNo);
             if (!plant) return;
 
             document.getElementById('quick-plant-no').value = plant.no;
             document.getElementById('quick-plant-title').innerText = `#${plant.no} - ${plant.name} (${plant.location})`;
+            document.getElementById('quick-plant-price').value = plant.price || '';
             document.getElementById('quick-plant-stage').value = plant.stage || 'Perkecambahan';
             document.getElementById('quick-plant-notes').value = plant.notes && plant.notes !== '-' ? plant.notes : '';
 
@@ -1794,9 +2034,11 @@ function doPost(e) {
             const plant = plantsState.find(p => p.no === plantNo);
             if (!plant) return;
 
+            const newPrice = parseFloat(document.getElementById('quick-plant-price').value) || 0;
             const newStage = document.getElementById('quick-plant-stage').value;
             const newNotes = document.getElementById('quick-plant-notes').value.trim();
 
+            plant.price = newPrice;
             plant.stage = newStage;
             plant.notes = newNotes || '-';
 
@@ -1804,7 +2046,7 @@ function doPost(e) {
             renderDashboard();
             renderFormTable();
             closeQuickUpdateModal();
-            showNotification(`✅ Status for ${plant.name} updated to ${getEnglishStageName(newStage)}`);
+            showNotification(`✅ Details for ${plant.name} updated!`);
         }
 
         function showModalNotification(title, message, theme = "emerald") {
@@ -1833,7 +2075,6 @@ function doPost(e) {
         function closeNotificationModal() {
             const modal = document.getElementById('notification-modal');
             if (modal) modal.classList.add('hidden');
-            switchTab('dashboard');
         }
 
         function renderHistoryLogs() {
@@ -1909,6 +2150,7 @@ function doPost(e) {
         function saveNewPlant() {
             const name = document.getElementById('new-plant-name').value.trim();
             const loc = document.getElementById('new-plant-loc').value.trim() || 'Wing 1';
+            const price = parseFloat(document.getElementById('new-plant-price').value) || 0;
             const stage = document.getElementById('new-plant-stage').value;
             const notes = document.getElementById('new-plant-notes').value.trim() || '-';
 
@@ -1918,7 +2160,7 @@ function doPost(e) {
             }
 
             const nextNo = plantsState.length > 0 ? Math.max(...plantsState.map(p => p.no)) + 1 : 1;
-            plantsState.push({ no: nextNo, name, location: loc, stage, notes });
+            plantsState.push({ no: nextNo, name, location: loc, price, stage, notes });
 
             saveStateToLocalStorage();
             renderDashboard();
@@ -1928,6 +2170,7 @@ function doPost(e) {
             showNotification(`✅ Crop ${name} added successfully!`);
 
             document.getElementById('new-plant-name').value = '';
+            document.getElementById('new-plant-price').value = '';
             document.getElementById('new-plant-notes').value = '';
         }
 
