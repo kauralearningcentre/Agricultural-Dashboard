@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaura Smart Agri-Monitor & Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        kaura: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col custom-scrollbar">
+
+    <header class="bg-gradient-to-r from-kaura-900 via-kaura-800 to-emerald-800 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+                
+                <!-- Brand Logo & Title -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 text-xl font-bold shadow-inner shrink-0">
+                            <i class="fa-solid fa-seedling"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight">KAURA FARM MONITORING</h1>
+                            <p class="text-[11px] sm:text-xs text-emerald-200">Crop Monitoring & Dedicated Harvest Logs</p>
+                        </div>
+                    </div>
+
+                    <!-- Sync Button Mobile View -->
+                    <button onclick="fetchDataFromGoogleSheet()" class="md:hidden p-2 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-all flex items-center justify-center shadow" title="Sync Sheet Data">
+                        <i class="fa-solid fa-rotate" id="sync-icon-mobile"></i>
+                    </button>
+                </div>
+
+                <!-- App Mode Navigation Tabs (Scrollable on Mobile) -->
+                <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+                    <button id="btn-sync-sheet" onclick="fetchDataFromGoogleSheet()" class="hidden md:flex px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300 transition-all items-center gap-2 shadow shrink-0">
+                        <i class="fa-solid fa-rotate" id="sync-icon"></i> <span id="sync-btn-text">Sync Google Sheets</span>
+                    </button>
+                    <button id="nav-btn-dashboard" onclick="switchTab('dashboard')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-white/20 text-white shadow shrink-0">
+                        <i class="fa-solid fa-chart-pie"></i> Dashboard
+                    </button>
+                    <button id="nav-btn-form" onclick="switchTab('form')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0">
+                        <i class="fa-solid fa-clipboard-check"></i> Inspection Form
+                    </button>
+                    <button id="nav-btn-yield" onclick="switchTab('yield')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0">
+                        <i class="fa-solid fa-weight-scale"></i> Harvest Yield Log
+                    </button>
+                    <button id="nav-btn-history" onclick="switchTab('history')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0">
+                        <i class="fa-solid fa-clock-rotate-left"></i> History Log
+                    </button>
+                    <button id="nav-btn-config" onclick="switchTab('config')" class="nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0">
+                        <i class="fa-solid fa-sliders"></i> Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+        <!-- Connection Status Banner -->
+        <div id="sync-status-banner" class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+            <div class="flex items-center gap-2.5">
+                <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                <span id="sync-text" class="text-slate-600 font-medium">Connection Status: Fetching data from Google Sheets...</span>
+            </div>
+            <span class="text-slate-400 font-mono text-[11px] truncate max-w-full">Sheet ID: 1pnF1u...ADau4</span>
+        </div>
+
+        <!-- ================= VIEW 1: DASHBOARD ================= -->
+        <section id="view-dashboard" class="space-y-6">
+
+            <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-700 rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 text-white/10 text-8xl sm:text-9xl font-black select-none pointer-events-none">
+                    <i class="fa-solid fa-basket-shopping"></i>
+                </div>
+                <div class="relative z-10 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-white/20 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl text-amber-200 shrink-0">
+                                <i class="fa-solid fa-wheat-awn"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base sm:text-lg font-extrabold tracking-wide uppercase">HARVEST ALERT THIS WEEK</h2>
+                                <p class="text-xs text-amber-100">Crops marked as "Ready for Harvest". Click "Record Yield" to log harvest mass in <code class="bg-black/20 px-1 rounded">Log_Panen</code>.</p>
+                            </div>
+                        </div>
+                        <span id="ready-count-text" class="bg-amber-400 text-amber-950 font-extrabold text-xs px-3 py-1 rounded-full shadow shrink-0">0 Crops</span>
+                    </div>
+
+                    <div id="harvest-alert-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <!-- Dynamic harvest alert items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Metric Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-plant-wilt"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">Total Crops</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-slate-800" id="stat-total-plants">0</h3>
+                        <p class="text-[10px] text-slate-400 truncate">Registered</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-scissors"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">Ready Harvest</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-amber-600" id="stat-ready-harvest">0</h3>
+                        <p class="text-[10px] text-amber-600 font-medium truncate">Needs picking</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-basket-shopping"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">Harvested</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-emerald-700" id="stat-harvested-count">0</h3>
+                        <p class="text-[10px] text-emerald-600 font-medium truncate">Completed</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-teal-200 bg-teal-50/30 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-weight-scale"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-teal-800 uppercase truncate">Total Yield</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-teal-700" id="stat-total-weight">0 kg</h3>
+                        <p class="text-[10px] text-teal-600 font-medium truncate">From Log_Panen</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">In Growth</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-blue-600" id="stat-growing">0</h3>
+                        <p class="text-[10px] text-slate-400 truncate">Vegetative/Repro</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold shrink-0">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase truncate">Total Zones</p>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-purple-700" id="stat-total-zones">0</h3>
+                        <p class="text-[10px] text-slate-400 truncate">Wing areas</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Doughnut Chart -->
+                <div class="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slate-800 text-base">Growth Stages Distribution</h3>
+                            <i class="fa-solid fa-chart-pie text-slate-400"></i>
+                        </div>
+                        <div class="relative w-full flex justify-center items-center py-2 min-h-[220px]">
+                            <canvas id="growthDoughnutChart" class="max-h-60"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 text-center">
+                        Kaura Farm crop stage proportions from <code class="bg-slate-100 px-1 py-0.5 rounded">Log_Monitoring</code>.
+                    </div>
+                </div>
+
+                <!-- Bar Chart -->
+                <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slate-800 text-base">Crop Seeding by Location / Wing</h3>
+                            <span class="text-xs font-medium text-slate-500">Zone Breakdown</span>
+                        </div>
+                        <div class="w-full h-64">
+                            <canvas id="locationBarChart" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                        <span>Realtime Integrated Analytics</span>
+                        <div class="flex items-center gap-3">
+                            <button onclick="switchTab('form')" class="text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                                Inspection Form <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                            <button onclick="switchTab('yield')" class="text-teal-600 hover:text-teal-700 font-semibold flex items-center gap-1">
+                                Input Harvest Mass <i class="fa-solid fa-weight-scale"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Crop Table -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-slate-800 text-base sm:text-lg">Crop Status & Location Overview</h3>
+                            <span id="total-rows-tag" class="bg-emerald-100 text-emerald-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Crops</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Live plant tracking table.</p>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                        <div class="relative flex-grow sm:flex-grow-0 w-full sm:w-auto">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="dash-search" placeholder="Search crops..." oninput="filterDashboardTable()" 
+                                   class="pl-9 pr-4 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg w-full sm:w-44 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+
+                        <select id="dash-location-filter" onchange="filterDashboardTable()" 
+                                class="px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white flex-grow sm:flex-grow-0">
+                            <option value="ALL">📍 All Locations</option>
+                        </select>
+
+                        <select id="dash-stage-filter" onchange="filterDashboardTable()" 
+                                class="px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white flex-grow sm:flex-grow-0">
+                            <option value="ALL">🌱 All Stages</option>
+                            <option value="Perkecambahan">Germination</option>
+                            <option value="Pertumbuhan Awal">Early Growth</option>
+                            <option value="Pertumbuhan Maksimal">Peak Growth</option>
+                            <option value="Pematangan">Ripening</option>
+                            <option value="Siap Panen">🌾 Ready for Harvest</option>
+                            <option value="Telah Dipanen">🧺 Harvested</option>
+                        </select>
+
+                        <button onclick="openAddPlantModal()" class="w-full sm:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 shadow">
+                            <i class="fa-solid fa-plus"></i> Add Crop
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Responsive Table Wrapper -->
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[650px]">
+                        <thead class="bg-slate-100/80 text-slate-700 font-semibold text-xs uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-3.5 w-12 text-center">No</th>
+                                <th class="py-3 px-3.5">Crop Name</th>
+                                <th class="py-3 px-3.5">Location / Zone</th>
+                                <th class="py-3 px-3.5 text-center">Active Stage</th>
+                                <th class="py-3 px-3.5 text-center">Stage Progress</th>
+                                <th class="py-3 px-3.5 text-center">Harvest Status</th>
+                                <th class="py-3 px-3.5 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-table-body" class="divide-y divide-slate-100">
+                            <!-- Rows via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 2: WEEKLY INSPECTION FORM ================= -->
+        <section id="view-form" class="hidden space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                
+                <!-- Inspection Header -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+                    <div>
+                        <div class="flex items-center gap-2 text-emerald-700 font-bold text-xs sm:text-sm mb-1">
+                            <i class="fa-solid fa-calendar-check"></i> WEEKLY ROUTINE INSPECTION
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Kaura Crop Growth Stage Inspection</h2>
+                        <p class="text-xs text-slate-500 mt-1">Select updated growth stage for each crop. Data is saved per location into Google Sheet (<code class="bg-slate-100 px-1 py-0.5 rounded">Log_Monitoring</code>).</p>
+                    </div>
+
+                    <!-- Inspection Metadata -->
+                    <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 w-full md:w-auto">
+                        <div class="flex-grow sm:flex-grow-0">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Inspection Date</label>
+                            <input type="date" id="input-inspection-date" class="w-full px-3 py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        </div>
+                        <div class="flex-grow sm:flex-grow-0">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Auditor / Inspector</label>
+                            <input type="text" id="input-inspector-name" value="Kaura Field Team" class="w-full px-3 py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Selector Filter Tabs -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-4" id="form-location-tabs">
+                    <!-- Dynamic location tabs -->
+                </div>
+
+                <!-- Desktop Form Table View -->
+                <div class="hidden md:block overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl mb-6">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-slate-800 font-bold text-xs uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-3 w-10 text-center">No</th>
+                                <th class="py-3 px-4 min-w-[140px]">Crop Name</th>
+                                <th class="py-3 px-3 min-w-[90px]">Location</th>
+                                <th class="py-3 px-3 text-center min-w-[100px]">Germination</th>
+                                <th class="py-3 px-3 text-center min-w-[110px]">Early Growth</th>
+                                <th class="py-3 px-3 text-center min-w-[110px]">Peak Growth</th>
+                                <th class="py-3 px-3 text-center min-w-[100px]">Ripening</th>
+                                <th class="py-3 px-3 text-center min-w-[110px] bg-amber-50 text-amber-900 border-l border-amber-200">🌾 Ready Harvest</th>
+                                <th class="py-3 px-3 text-center min-w-[110px] bg-emerald-50 text-emerald-900 border-l border-emerald-200">🧺 Harvested</th>
+                                <th class="py-3 px-4 min-w-[180px]">Field Inspection Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="form-table-body" class="divide-y divide-slate-200">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Responsive Card Inspection View -->
+                <div id="form-mobile-cards-container" class="block md:hidden space-y-3 mb-6">
+                    <!-- Dynamic mobile cards -->
+                </div>
+
+                <!-- Submit Action Footer -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="text-xs text-slate-500 text-center sm:text-left">
+                        <i class="fa-solid fa-cloud-arrow-up text-emerald-600 mr-1"></i> Data synced to Google Sheet (<code class="bg-slate-200 px-1 py-0.5 rounded text-slate-700">Log_Monitoring</code>) for active selected location.
+                    </div>
+                    <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                        <button onclick="fetchDataFromGoogleSheet()" class="w-1/2 sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs sm:text-sm font-semibold transition-colors">
+                            <i class="fa-solid fa-rotate mr-1"></i> Refresh Sheet
+                        </button>
+                        <button onclick="submitWeeklyInspection()" id="btn-submit-inspection" class="w-1/2 sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> <span id="submit-btn-label">Save Inspection</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 3: HARVEST YIELD LOG (NEW DEDICATED TAB) ================= -->
+        <section id="view-yield" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Form Input Harvest Mass (Dedicated) -->
+                <div class="bg-white p-5 sm:p-6 rounded-2xl border border-teal-200 shadow-sm space-y-4">
+                    <div class="border-b border-slate-200 pb-3">
+                        <div class="flex items-center gap-2 text-teal-700 font-bold text-xs mb-1">
+                            <i class="fa-solid fa-scale-balanced"></i> DEDICATED HARVEST ENTRY
+                        </div>
+                        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">Record Crop Harvest Mass</h2>
+                        <p class="text-xs text-slate-500 mt-1">Log mass (kg) independently into Google Sheet (<code class="bg-teal-50 text-teal-900 px-1 py-0.5 rounded font-mono">Log_Panen</code>).</p>
+                    </div>
+
+                    <form id="yield-form" onsubmit="submitHarvestYield(event)" class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Harvest Date</label>
+                            <input type="date" id="yield-date" required class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Select Crop</label>
+                            <select id="yield-plant-select" required onchange="onYieldPlantSelectChange()" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                                <option value="">-- Choose Crop to Harvest --</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Location / Zone</label>
+                                <input type="text" id="yield-location" readonly placeholder="Auto location" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 bg-slate-100 text-slate-600 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Harvest Mass (kg)</label>
+                                <input type="number" step="0.01" min="0.01" id="yield-weight" required placeholder="e.g. 12.5" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-teal-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-teal-900 bg-teal-50/30">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Harvester / Officer Name</label>
+                            <input type="text" id="yield-harvester" value="Kaura Field Team" required class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Notes / Observations</label>
+                            <textarea id="yield-notes" rows="2" placeholder="Harvest batch condition notes..." class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                        </div>
+
+                        <button type="submit" id="btn-submit-yield" class="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Save Yield to Log_Panen
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Recent Harvest Entries Table & Log -->
+                <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 pb-3 border-b border-slate-200">
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-base sm:text-lg">Harvest Yield Registry (<code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs text-teal-800">Log_Panen</code>)</h3>
+                                <p class="text-xs text-slate-500">History of recorded harvest weight entries.</p>
+                            </div>
+                            <span id="yield-total-badge" class="bg-teal-100 text-teal-800 font-extrabold text-xs px-3 py-1 rounded-full border border-teal-200">Total: 0 kg</span>
+                        </div>
+
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[500px]">
+                                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[11px] border-b border-slate-200">
+                                    <tr>
+                                        <th class="py-2.5 px-3">Date</th>
+                                        <th class="py-2.5 px-3">Crop Name</th>
+                                        <th class="py-2.5 px-3">Location</th>
+                                        <th class="py-2.5 px-3 text-right">Yield Mass</th>
+                                        <th class="py-2.5 px-3">Harvester</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="yield-log-table-body" class="divide-y divide-slate-100">
+                                    <!-- Dynamic Yield Entries -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 flex justify-between items-center">
+                        <span><i class="fa-solid fa-circle-info text-teal-600 mr-1"></i> Data logged in <code class="bg-slate-100 px-1 rounded text-slate-700">Log_Panen</code> sheet independently.</span>
+                        <button onclick="clearYieldLogs()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-trash"></i> Clear Local Yields
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= VIEW 4: INSPECTION HISTORY ================= -->
+        <section id="view-history" class="hidden space-y-6">
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Weekly Inspection Logs</h2>
+                        <p class="text-xs text-slate-500">Historical snapshots of saved weekly inspection runs (<code class="bg-slate-100 px-1 py-0.5 rounded">Log_Monitoring</code>).</p>
+                    </div>
+                    <button onclick="clearHistoryLogs()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-trash"></i> Clear Inspection History
+                    </button>
+                </div>
+
+                <div id="history-list-container" class="space-y-3.5">
+                    <!-- Dynamic Log Cards -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 5: CONFIG & SETTINGS ================= -->
+        <section id="view-config" class="hidden space-y-6">
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+                <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl shrink-0">
+                        <i class="fa-solid fa-plug"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">Google Sheets API Integration Settings</h2>
+                        <p class="text-xs text-slate-500">Connect this web app with your Google Apps Script Web App Endpoint.</p>
+                    </div>
+                </div>
+
+                <!-- Info Banner -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-xs text-amber-900">
+                    <h4 class="font-bold flex items-center gap-1.5 text-sm mb-1 text-amber-950">
+                        <i class="fa-solid fa-layer-group text-amber-600"></i> Kaura Monitoring 3-Sheet Architecture:
+                    </h4>
+                    <ol class="list-decimal list-inside space-y-1.5 mt-2 font-medium">
+                        <li><strong>Sheet 1 ("Data Tanaman"):</strong> Master crop registry (Column A: <code>No</code>, Column B: <code>Nama Tanaman</code>, Column C: <code>Lokasi</code>).</li>
+                        <li><strong>Sheet 2 ("Log_Monitoring"):</strong> Weekly growth stage logs (<code>Tanggal</code>, <code>No</code>, <code>Nama Tanaman</code>, <code>Lokasi</code>, <code>Perkecambahan</code>, <code>Pertumbuhan Awal</code>, <code>Pertumbuhan Maksimal</code>, <code>Pematangan</code>, <code>Siap Panen</code>, <code>Telah Dipanen</code>, <code>Catatan</code>, <code>Auditor</code>).</li>
+                        <li><strong>Sheet 3 ("Log_Panen"):</strong> Independent harvest yield entries (<code>Tanggal</code>, <code>No</code>, <code>Nama Tanaman</code>, <code>Lokasi</code>, <code>Massa Panen (kg)</code>, <code>Catatan</code>, <code>Petugas Panen</code>).</li>
+                    </ol>
+                </div>
+
+                <!-- Webhook URL Field -->
+                <div class="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-3 mb-6">
+                    <label class="block text-xs sm:text-sm font-bold text-slate-700">Google Apps Script Web App Endpoint (doGet & doPost)</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="url" id="webhook-url-input" placeholder="https://script.google.com/macros/s/.../exec" 
+                               class="flex-grow px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        <button onclick="saveWebhookUrl()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-lg transition-colors shadow">
+                            Save Endpoint
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500">Connecting this URL enables dual-sheet reading and multi-sheet writing to <code class="bg-slate-200 px-1 rounded text-slate-700">Log_Monitoring</code> and <code class="bg-slate-200 px-1 rounded text-slate-700">Log_Panen</code>.</p>
+                </div>
+
+                <!-- Apps Script Code Snippet -->
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-code text-emerald-600"></i> Updated Google Apps Script Code (3-Sheet Webhook Handler):
+                    </h3>
+                    <div class="relative bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-[11px] sm:text-xs overflow-x-auto custom-scrollbar">
+                        <button onclick="copyAppsScriptCode()" class="absolute top-3 right-3 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[11px] font-sans font-semibold">
+                            <i class="fa-solid fa-copy"></i> Copy Code
+                        </button>
+                        <pre id="apps-script-code">
+// Apps Script Code for 3 Sheets: "Data Tanaman", "Log_Monitoring", & "Log_Panen"
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. Fetch Master Crop List
+    var sheetMaster = ss.getSheetByName("Data Tanaman");
+    var dataTanaman = sheetMaster ? sheetMaster.getDataRange().getValues() : [];
+    
+    // 2. Fetch Log Monitoring Records
+    var sheetLog = ss.getSheetByName("Log_Monitoring");
+    var logMonitoring = sheetLog ? sheetLog.getDataRange().getValues() : [];
+    
+    // 3. Fetch Harvest Yield Logs
+    var sheetPanen = ss.getSheetByName("Log_Panen");
+    var logPanen = sheetPanen ? sheetPanen.getDataRange().getValues() : [];
+
+    return ContentService.createTextOutput(JSON.stringify({ 
+      result: "success", 
+      dataTanaman: dataTanaman,
+      logMonitoring: logMonitoring,
+      logPanen: logPanen
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ result: "error", error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var data = JSON.parse(e.postData.contents);
+
+    // CASE A: Dedicated Harvest Mass Entry (Log_Panen)
+    if (data.type === 'yield') {
+      var sheetPanen = ss.getSheetByName("Log_Panen");
+      if (!sheetPanen) {
+        sheetPanen = ss.insertSheet("Log_Panen");
+        sheetPanen.appendRow(["Tanggal", "No", "Nama Tanaman", "Lokasi", "Massa Panen (kg)", "Catatan", "Petugas Panen"]);
+      }
+      sheetPanen.appendRow([
+        data.date || new Date().toISOString().split('T')[0],
+        data.no,
+        data.name,
+        data.location,
+        data.weight || 0,
+        data.notes || "-",
+        data.harvester || "Kaura Field Team"
+      ]);
+      return ContentService.createTextOutput(JSON.stringify({ result: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CASE B: Weekly Growth Stage Inspection (Log_Monitoring)
+    var sheetLog = ss.getSheetByName("Log_Monitoring");
+    if (!sheetLog) {
+      sheetLog = ss.insertSheet("Log_Monitoring");
+      sheetLog.appendRow(["Tanggal", "No", "Nama Tanaman", "Lokasi", "Perkecambahan", "Pertumbuhan Awal", "Pertumbuhan Maksimal", "Pematangan", "Siap Panen", "Telah Dipanen", "Catatan", "Auditor"]);
+    }
+    
+    var timestamp = data.date || new Date().toISOString().split('T')[0];
+    var inspector = data.inspector || "Kaura Field Team";
+    
+    if (data.items && data.items.length > 0) {
+      data.items.forEach(function(item) {
+        sheetLog.appendRow([
+          timestamp,
+          item.no,
+          item.name,
+          item.location,
+          item.perkecambahan ? "YES" : "NO",
+          item.pertumbuhanAwal ? "YES" : "NO",
+          item.pertumbuhanMaks ? "YES" : "NO",
+          item.pematangan ? "YES" : "NO",
+          item.siapPanen ? "READY HARVEST" : "NO",
+          item.telahDipanen ? "HARVESTED" : "NO",
+          item.notes || "-",
+          inspector
+        ]);
+      });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ result: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ result: "error", error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+                    </pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Notification Dialog -->
+    <div id="notification-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 text-center transform transition-all">
+            <div id="modal-icon-bg" class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center text-3xl shadow-inner">
+                <i id="modal-icon" class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <h3 id="modal-title" class="font-extrabold text-slate-800 text-xl">Inspection Saved</h3>
+                <p id="modal-message" class="text-xs text-slate-600 mt-2 leading-relaxed"></p>
+            </div>
+            <div class="pt-2">
+                <button onclick="closeNotificationModal()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all">
+                    Close & View Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Crop Manual -->
+    <div id="add-plant-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base sm:text-lg">Add New Crop</h3>
+                <button onclick="closeAddPlantModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Crop Name</label>
+                    <input type="text" id="new-plant-name" placeholder="e.g. Romaine Lettuce" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Location / Zone</label>
+                    <input type="text" id="new-plant-loc" placeholder="e.g. Wing 1" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Initial Growth Stage</label>
+                    <select id="new-plant-stage" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        <option value="Perkecambahan">Germination</option>
+                        <option value="Pertumbuhan Awal">Early Growth</option>
+                        <option value="Pertumbuhan Maksimal">Peak Growth</option>
+                        <option value="Pematangan">Ripening</option>
+                        <option value="Siap Panen">🌾 Ready for Harvest</option>
+                        <option value="Telah Dipanen">🧺 Harvested</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Field Notes</label>
+                    <input type="text" id="new-plant-notes" placeholder="Condition note..." class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeAddPlantModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button onclick="saveNewPlant()" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow">Save Crop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Quick Status Update -->
+    <div id="quick-update-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base sm:text-lg">Update Growth Status</h3>
+                    <p id="quick-plant-title" class="text-xs text-emerald-600 font-semibold"></p>
+                </div>
+                <button onclick="closeQuickUpdateModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="hidden" id="quick-plant-no">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Active Growth Stage</label>
+                    <select id="quick-plant-stage" class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        <option value="Perkecambahan">🌱 Germination</option>
+                        <option value="Pertumbuhan Awal">🌿 Early Growth</option>
+                        <option value="Pertumbuhan Maksimal">🌳 Peak Growth</option>
+                        <option value="Pematangan">🍅 Ripening</option>
+                        <option value="Siap Panen">🌾 Ready for Harvest</option>
+                        <option value="Telah Dipanen">🧺 Harvested</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Field Notes</label>
+                    <input type="text" id="quick-plant-notes" placeholder="Current condition note..." class="w-full px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeQuickUpdateModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button onclick="saveQuickUpdate()" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google Sheet Constants
+        const GOOGLE_SHEET_ID = '1pnF1uVqlbnIWlhrFhrpZyFovOqQJWiMYyLtWuvADau4';
+        const GVIZ_DATA_TANAMAN = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=Data%20Tanaman`;
+        const GVIZ_LOG_MONITORING = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=Log_Monitoring`;
+        const GVIZ_LOG_PANEN = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=Log_Panen`;
+
+        // Application State
+        let masterPlants = JSON.parse(localStorage.getItem('kaura_master_plants')) || [];
+        let plantsState = JSON.parse(localStorage.getItem('kaura_plants_state')) || [];
+        let yieldLogs = JSON.parse(localStorage.getItem('kaura_yield_logs')) || [];
+        let historyLogs = JSON.parse(localStorage.getItem('kaura_history_logs')) || [];
+        let webhookUrl = localStorage.getItem('kaura_webhook_url') || '';
+        let activeFormLocationFilter = 'ALL';
+
+        // Unselected radio form buffers
+        let formSelections = {};
+        let formNotes = {};
+
+        // Chart Instances
+        let doughnutChartInstance = null;
+        let barChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('input-inspection-date');
+            if (dateInput) dateInput.value = todayStr;
+
+            const yieldDateInput = document.getElementById('yield-date');
+            if (yieldDateInput) yieldDateInput.value = todayStr;
+
+            if (webhookUrl) {
+                const urlInput = document.getElementById('webhook-url-input');
+                if (urlInput) urlInput.value = webhookUrl;
+            }
+
+            fetchDataFromGoogleSheet();
+        });
+
+        function switchTab(tabName) {
+            const views = ['dashboard', 'form', 'yield', 'history', 'config'];
+            
+            views.forEach(v => {
+                const sec = document.getElementById(`view-${v}`);
+                const btn = document.getElementById(`nav-btn-${v}`);
+                
+                if (sec) {
+                    if (v === tabName) {
+                        sec.classList.remove('hidden');
+                    } else {
+                        sec.classList.add('hidden');
+                    }
+                }
+
+                if (btn) {
+                    if (v === tabName) {
+                        btn.className = "nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-white/20 text-white shadow shrink-0";
+                    } else {
+                        btn.className = "nav-tab-btn px-3.5 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-transparent text-emerald-100 hover:bg-white/10 shrink-0";
+                    }
+                }
+            });
+
+            if (tabName === 'dashboard') {
+                setTimeout(() => { renderDashboard(); }, 50);
+            } else if (tabName === 'yield') {
+                populateYieldCropDropdown();
+                renderYieldLogTable();
+            }
+        }
+
+        async function fetchDataFromGoogleSheet() {
+            const syncIcon = document.getElementById('sync-icon');
+            const syncIconMobile = document.getElementById('sync-icon-mobile');
+            const syncBtnText = document.getElementById('sync-btn-text');
+            const syncDot = document.getElementById('sync-dot');
+            const syncText = document.getElementById('sync-text');
+
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+            if (syncIconMobile) syncIconMobile.classList.add('fa-spin');
+            if (syncBtnText) syncBtnText.innerText = "Syncing Data...";
+            if (syncDot) syncDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0";
+            if (syncText) syncText.innerText = "Fetching data from 'Data Tanaman', 'Log_Monitoring' & 'Log_Panen'...";
+
+            let fetchedMaster = [];
+            let fetchedLogsMap = {};
+
+            try {
+                if (webhookUrl) {
+                    try {
+                        const res = await fetch(webhookUrl, { redirect: 'follow' });
+                        const rawText = await res.text();
+                        if (!rawText.trim().startsWith('<')) {
+                            const json = JSON.parse(rawText);
+                            if (json.dataTanaman) {
+                                fetchedMaster = parseMasterSheetRows(json.dataTanaman);
+                            }
+                            if (json.logMonitoring) {
+                                fetchedLogsMap = parseLogSheetRows(json.logMonitoring);
+                            }
+                            if (json.logPanen) {
+                                yieldLogs = parseYieldSheetRows(json.logPanen);
+                                localStorage.setItem('kaura_yield_logs', JSON.stringify(yieldLogs));
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Webhook fetch attempt failed:", e);
+                    }
+                }
+
+                if (fetchedMaster.length === 0) {
+                    try {
+                        const resMaster = await fetch(GVIZ_DATA_TANAMAN);
+                        const textMaster = await resMaster.text();
+                        if (textMaster.includes("google.visualization.Query.setResponse")) {
+                            fetchedMaster = parseGvizMasterJson(textMaster);
+                        }
+
+                        const resLogs = await fetch(GVIZ_LOG_MONITORING);
+                        const textLogs = await resLogs.text();
+                        if (textLogs.includes("google.visualization.Query.setResponse")) {
+                            fetchedLogsMap = parseGvizLogsJson(textLogs);
+                        }
+
+                        const resYields = await fetch(GVIZ_LOG_PANEN);
+                        const textYields = await resYields.text();
+                        if (textYields.includes("google.visualization.Query.setResponse")) {
+                            const fetchedYields = parseGvizYieldsJson(textYields);
+                            if (fetchedYields.length > 0) {
+                                yieldLogs = fetchedYields;
+                                localStorage.setItem('kaura_yield_logs', JSON.stringify(yieldLogs));
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("GViz JSON fetch failed:", e);
+                    }
+                }
+
+                if (fetchedMaster.length > 0) {
+                    masterPlants = fetchedMaster;
+                    localStorage.setItem('kaura_master_plants', JSON.stringify(masterPlants));
+
+                    plantsState = masterPlants.map(p => {
+                        const latestLog = fetchedLogsMap[p.no] || fetchedLogsMap[p.name];
+                        if (latestLog) {
+                            return {
+                                no: p.no,
+                                name: p.name,
+                                location: p.location,
+                                stage: latestLog.stage,
+                                notes: latestLog.notes
+                            };
+                        } else {
+                            return {
+                                no: p.no,
+                                name: p.name,
+                                location: p.location,
+                                stage: "Perkecambahan",
+                                notes: "-"
+                            };
+                        }
+                    });
+
+                    saveStateToLocalStorage();
+                    
+                    if (syncDot) syncDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0";
+                    if (syncText) syncText.innerText = `Connected to Sheets: ${plantsState.length} crops loaded from 'Data Tanaman', 'Log_Monitoring' & 'Log_Panen'`;
+                    showNotification(`✅ Loaded ${plantsState.length} crops from Google Sheets!`);
+                } else {
+                    masterPlants = [];
+                    plantsState = [];
+                    saveStateToLocalStorage();
+                    if (syncDot) syncDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
+                    if (syncText) syncText.innerText = "No data found in Google Sheets or public access is restricted.";
+                    showNotification(`ℹ️ Google Sheet does not contain active rows yet.`);
+                }
+            } catch (err) {
+                console.error("Error fetching Google Sheet:", err);
+                masterPlants = [];
+                plantsState = [];
+                saveStateToLocalStorage();
+                if (syncDot) syncDot.className = "w-2.5 h-2.5 rounded-full bg-rose-400 shrink-0";
+                if (syncText) syncText.innerText = "Failed to connect to Google Sheets. Verify link permissions...";
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+                if (syncIconMobile) syncIconMobile.classList.remove('fa-spin');
+                if (syncBtnText) syncBtnText.innerText = "Sync Google Sheets";
+                renderDashboard();
+                renderFormTable();
+                populateYieldCropDropdown();
+                renderYieldLogTable();
+                renderHistoryLogs();
+            }
+        }
+
+        function parseGvizMasterJson(gvizText) {
+            const items = [];
+            try {
+                const jsonString = gvizText.substring(gvizText.indexOf('{'), gvizText.lastIndexOf('}') + 1);
+                const data = JSON.parse(jsonString);
+                const rows = data.table?.rows || [];
+
+                rows.forEach((row, idx) => {
+                    const c = row.c || [];
+                    if (!c[0] && !c[1]) return;
+                    const cellA = String(c[0]?.v || c[0]?.f || '').trim();
+                    if (cellA.toLowerCase() === 'no' || String(c[1]?.v || '').toLowerCase().includes('nama')) return;
+
+                    const plantNo = parseInt(cellA || (idx + 1), 10);
+                    if (!isNaN(plantNo) && plantNo > 0) {
+                        const name = c[1]?.v ? String(c[1].v).trim() : `Crop #${plantNo}`;
+                        const location = c[2]?.v ? String(c[2].v).trim() : 'Wing 1';
+                        items.push({ no: plantNo, name: name, location: location });
+                    }
+                });
+            } catch (err) {
+                console.error("Error parsing Master GViz JSON:", err);
+            }
+            return items;
+        }
+
+        function parseMasterSheetRows(rows) {
+            const items = [];
+            rows.forEach((row, idx) => {
+                if (idx === 0 && String(row[0]).toLowerCase().includes('no')) return;
+                const plantNo = parseInt(row[0] || (idx + 1), 10);
+                if (!isNaN(plantNo) && plantNo > 0) {
+                    items.push({
+                        no: plantNo,
+                        name: String(row[1] || `Crop #${plantNo}`).trim(),
+                        location: String(row[2] || "Wing 1").trim()
+                    });
+                }
+            });
+            return items;
+        }
+
+        function parseGvizLogsJson(gvizText) {
+            const logsMap = {};
+            try {
+                const jsonString = gvizText.substring(gvizText.indexOf('{'), gvizText.lastIndexOf('}') + 1);
+                const data = JSON.parse(jsonString);
+                const rows = data.table?.rows || [];
+
+                rows.forEach((row) => {
+                    const c = row.c || [];
+                    if (!c[0] && !c[1]) return;
+                    if (String(c[0]?.v || '').toLowerCase().includes('tanggal') || String(c[0]?.v || '').toLowerCase().includes('date')) return;
+
+                    const plantNo = parseInt(c[1]?.v || 0, 10);
+                    const plantName = String(c[2]?.v || '').trim();
+
+                    const isPerkecambahan = c[4] ? (c[4].v === true || String(c[4].v).toUpperCase() === "YES" || String(c[4].v).toUpperCase() === "YA") : false;
+                    const isAwal = c[5] ? (c[5].v === true || String(c[5].v).toUpperCase() === "YES" || String(c[5].v).toUpperCase() === "YA") : false;
+                    const isMaks = c[6] ? (c[6].v === true || String(c[6].v).toUpperCase() === "YES" || String(c[6].v).toUpperCase() === "YA") : false;
+                    const isPematangan = c[7] ? (c[7].v === true || String(c[7].v).toUpperCase() === "YES" || String(c[7].v).toUpperCase() === "YA") : false;
+                    const isSiapPanen = c[8] ? (c[8].v === true || String(c[8].v).toUpperCase() === "YES" || String(c[8].v).toUpperCase() === "YA" || String(c[8].v).toUpperCase().includes("READY") || String(c[8].v).toUpperCase().includes("SIAP")) : false;
+                    const isTelahDipanen = c[9] ? (c[9].v === true || String(c[9].v).toUpperCase() === "YES" || String(c[9].v).toUpperCase() === "YA" || String(c[9].v).toUpperCase().includes("HARVESTED") || String(c[9].v).toUpperCase().includes("TELAH")) : false;
+                    const notes = c[10]?.v ? String(c[10].v).trim() : "-";
+
+                    let stage = "Perkecambahan";
+                    if (isTelahDipanen) stage = "Telah Dipanen";
+                    else if (isSiapPanen) stage = "Siap Panen";
+                    else if (isPematangan) stage = "Pematangan";
+                    else if (isMaks) stage = "Pertumbuhan Maksimal";
+                    else if (isAwal) stage = "Pertumbuhan Awal";
+                    else if (isPerkecambahan) stage = "Perkecambahan";
+
+                    const logObj = { stage: stage, notes: notes };
+                    if (plantNo > 0) logsMap[plantNo] = logObj;
+                    if (plantName) logsMap[plantName] = logObj;
+                });
+            } catch (err) {
+                console.error("Error parsing Logs GViz JSON:", err);
+            }
+            return logsMap;
+        }
+
+        function parseLogSheetRows(rows) {
+            const logsMap = {};
+            rows.forEach((row, idx) => {
+                if (idx === 0 && (String(row[0]).toLowerCase().includes('tanggal') || String(row[0]).toLowerCase().includes('date'))) return;
+                const plantNo = parseInt(row[1] || 0, 10);
+                const plantName = String(row[2] || '').trim();
+
+                const isTelahDipanen = row[9] === true || String(row[9]).toUpperCase() === "YES" || String(row[9]).toUpperCase() === "YA" || String(row[9]).toUpperCase().includes("HARVESTED");
+                const isSiapPanen = row[8] === true || String(row[8]).toUpperCase() === "YES" || String(row[8]).toUpperCase() === "YA" || String(row[8]).toUpperCase().includes("READY");
+                const isPematangan = row[7] === true || String(row[7]).toUpperCase() === "YES" || String(row[7]).toUpperCase() === "YA";
+                const isMaks = row[6] === true || String(row[6]).toUpperCase() === "YES" || String(row[6]).toUpperCase() === "YA";
+                const isAwal = row[5] === true || String(row[5]).toUpperCase() === "YES" || String(row[5]).toUpperCase() === "YA";
+                const isPerkecambahan = row[4] === true || String(row[4]).toUpperCase() === "YES" || String(row[4]).toUpperCase() === "YA";
+                const notes = row[10] || "-";
+
+                let stage = "Perkecambahan";
+                if (isTelahDipanen) stage = "Telah Dipanen";
+                else if (isSiapPanen) stage = "Siap Panen";
+                else if (isPematangan) stage = "Pematangan";
+                else if (isMaks) stage = "Pertumbuhan Maksimal";
+                else if (isAwal) stage = "Pertumbuhan Awal";
+                else if (isPerkecambahan) stage = "Perkecambahan";
+
+                const logObj = { stage: stage, notes: notes };
+                if (plantNo > 0) logsMap[plantNo] = logObj;
+                if (plantName) logsMap[plantName] = logObj;
+            });
+            return logsMap;
+        }
+
+        function parseGvizYieldsJson(gvizText) {
+            const list = [];
+            try {
+                const jsonString = gvizText.substring(gvizText.indexOf('{'), gvizText.lastIndexOf('}') + 1);
+                const data = JSON.parse(jsonString);
+                const rows = data.table?.rows || [];
+
+                rows.forEach((row) => {
+                    const c = row.c || [];
+                    if (!c[0] && !c[1]) return;
+                    if (String(c[0]?.v || '').toLowerCase().includes('tanggal') || String(c[0]?.v || '').toLowerCase().includes('date')) return;
+
+                    const date = String(c[0]?.v || c[0]?.f || '').split('T')[0];
+                    const plantNo = parseInt(c[1]?.v || 0, 10);
+                    const plantName = String(c[2]?.v || '').trim();
+                    const location = String(c[3]?.v || '').trim();
+                    const weight = parseFloat(c[4]?.v || 0);
+                    const notes = c[5]?.v ? String(c[5].v).trim() : '-';
+                    const harvester = c[6]?.v ? String(c[6].v).trim() : 'Kaura Field Team';
+
+                    if (weight > 0) {
+                        list.unshift({
+                            id: Date.now() + Math.random(),
+                            date: date,
+                            no: plantNo,
+                            name: plantName,
+                            location: location,
+                            weight: weight,
+                            notes: notes,
+                            harvester: harvester
+                        });
+                    }
+                });
+            } catch(e) {
+                console.error("Error parsing Yield GViz JSON:", e);
+            }
+            return list;
+        }
+
+        function parseYieldSheetRows(rows) {
+            const list = [];
+            rows.forEach((row, idx) => {
+                if (idx === 0 && (String(row[0]).toLowerCase().includes('tanggal') || String(row[0]).toLowerCase().includes('date'))) return;
+                const weight = parseFloat(row[4] || 0);
+                if (weight > 0) {
+                    list.unshift({
+                        id: Date.now() + idx,
+                        date: String(row[0] || '').split('T')[0],
+                        no: parseInt(row[1] || 0, 10),
+                        name: String(row[2] || '').trim(),
+                        location: String(row[3] || '').trim(),
+                        weight: weight,
+                        notes: String(row[5] || '-'),
+                        harvester: String(row[6] || 'Kaura Field Team')
+                    });
+                }
+            });
+            return list;
+        }
+
+        function renderDashboard() {
+            const total = plantsState.length;
+            const readyItems = plantsState.filter(p => p.stage === 'Siap Panen');
+            const harvestedItems = plantsState.filter(p => p.stage === 'Telah Dipanen');
+            const readyCount = readyItems.length;
+            const harvestedCount = harvestedItems.length;
+            const growingCount = total - readyCount - harvestedCount;
+            
+            // Total yield mass calculated from dedicated yieldLogs (Log_Panen)
+            const totalWeight = yieldLogs.reduce((sum, y) => sum + (parseFloat(y.weight) || 0), 0);
+
+            const locations = [...new Set(plantsState.map(p => p.location))].filter(Boolean);
+
+            document.getElementById('stat-total-plants').innerText = total;
+            document.getElementById('stat-ready-harvest').innerText = readyCount;
+            document.getElementById('stat-harvested-count').innerText = harvestedCount;
+            document.getElementById('stat-total-weight').innerText = `${totalWeight.toFixed(1)} kg`;
+            document.getElementById('stat-growing').innerText = growingCount;
+            document.getElementById('stat-total-zones').innerText = locations.length;
+            document.getElementById('total-rows-tag').innerText = `${total} Crops`;
+            document.getElementById('ready-count-text').innerText = `${readyCount} Crops`;
+
+            const locSelect = document.getElementById('dash-location-filter');
+            if (locSelect) {
+                const currentSelectedLoc = locSelect.value;
+                locSelect.innerHTML = `<option value="ALL">📍 All Locations (${total})</option>`;
+                locations.forEach(loc => {
+                    const count = plantsState.filter(p => p.location === loc).length;
+                    locSelect.innerHTML += `<option value="${loc}">${loc} (${count})</option>`;
+                });
+                locSelect.value = currentSelectedLoc;
+            }
+
+            const harvestGrid = document.getElementById('harvest-alert-grid');
+            if (harvestGrid) {
+                harvestGrid.innerHTML = '';
+                if (readyItems.length === 0) {
+                    harvestGrid.innerHTML = `
+                        <div class="col-span-full bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center text-xs sm:text-sm text-emerald-100">
+                            <i class="fa-solid fa-circle-info mr-1"></i> No crops currently marked as Ready for Harvest.
+                        </div>
+                    `;
+                } else {
+                    readyItems.forEach(item => {
+                        harvestGrid.innerHTML += `
+                            <div class="bg-white/15 backdrop-blur-md p-3.5 rounded-xl border border-white/25 flex items-center justify-between hover:bg-white/25 transition-all shadow-sm">
+                                <div class="min-w-0 pr-2">
+                                    <h4 class="font-bold text-white text-xs sm:text-sm truncate">${item.name}</h4>
+                                    <span class="text-[11px] text-amber-200 font-medium truncate block">
+                                        <i class="fa-solid fa-location-dot mr-1"></i>${item.location}
+                                    </span>
+                                </div>
+                                <button onclick="quickOpenYieldEntry(${item.no})" class="bg-amber-400 hover:bg-amber-300 text-amber-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow shrink-0">
+                                    Log Yield
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            filterDashboardTable();
+            updateChartsData(locations);
+        }
+
+        function filterDashboardTable() {
+            const searchVal = (document.getElementById('dash-search')?.value || '').toLowerCase();
+            const locationVal = document.getElementById('dash-location-filter')?.value || 'ALL';
+            const stageVal = document.getElementById('dash-stage-filter')?.value || 'ALL';
+            const tbody = document.getElementById('dashboard-table-body');
+
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const filtered = plantsState.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(searchVal) || (p.notes && p.notes.toLowerCase().includes(searchVal));
+                const matchLoc = locationVal === 'ALL' || p.location === locationVal;
+                const matchStage = stageVal === 'ALL' || p.stage === stageVal;
+                return matchSearch && matchLoc && matchStage;
+            });
+
+            if (filtered.length === 0) {
+                const emptyMessage = plantsState.length === 0 
+                    ? 'No data from Google Sheets yet. Click "Sync Google Sheets" or verify public sheet access.' 
+                    : 'No crops matching search or filter criteria.';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400 text-xs sm:text-sm">
+                            ${emptyMessage}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const isReady = p.stage === 'Siap Panen';
+                const isHarvested = p.stage === 'Telah Dipanen';
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition-colors";
+
+                let stageDisplay = getEnglishStageName(p.stage);
+                let stageBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">${stageDisplay}</span>`;
+                if (isHarvested) {
+                    stageBadge = `<span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">🧺 Harvested</span>`;
+                } else if (isReady) {
+                    stageBadge = `<span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">🌾 Ready for Harvest</span>`;
+                } else if (p.stage === 'Pematangan') {
+                    stageBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Ripening</span>`;
+                } else if (p.stage === 'Pertumbuhan Maksimal') {
+                    stageBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Peak Growth</span>`;
+                }
+
+                // Sum harvest yield from yieldLogs for this plant
+                const cropYields = yieldLogs.filter(y => y.no === p.no || y.name === p.name);
+                const cropTotalWeight = cropYields.reduce((sum, y) => sum + y.weight, 0);
+
+                let harvestIndicator = '<span class="text-xs text-slate-400 font-medium">In Growth</span>';
+                if (isHarvested || cropTotalWeight > 0) {
+                    const weightBadge = cropTotalWeight > 0 ? `<span class="text-[10px] bg-teal-600 text-white font-bold px-1.5 py-0.5 rounded ml-1">${cropTotalWeight.toFixed(1)} kg</span>` : '';
+                    harvestIndicator = `<span class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full"><i class="fa-solid fa-check text-emerald-600"></i> HARVESTED ${weightBadge}</span>`;
+                } else if (isReady) {
+                    harvestIndicator = '<span class="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 bg-amber-100 px-3 py-1 rounded-full animate-pulse"><i class="fa-solid fa-basket-shopping"></i> READY</span>';
+                }
+
+                row.innerHTML = `
+                    <td class="py-3 px-3.5 font-medium text-slate-400 text-center">${p.no}</td>
+                    <td class="py-3 px-3.5">
+                        <span class="font-bold text-slate-800 text-xs sm:text-sm block">${p.name}</span>
+                        <span class="text-[11px] text-slate-400 block truncate max-w-[200px]">${p.notes || '-'}</span>
+                    </td>
+                    <td class="py-3 px-3.5">
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+                            <i class="fa-solid fa-location-dot text-slate-400 text-[10px]"></i> ${p.location}
+                        </span>
+                    </td>
+                    <td class="py-3 px-3.5 text-center">${stageBadge}</td>
+                    <td class="py-3 px-3.5 text-center">
+                        <div class="w-full bg-slate-100 rounded-full h-2 max-w-[90px] mx-auto overflow-hidden">
+                            <div class="bg-emerald-500 h-2 rounded-full" style="width: ${getStagePercentage(p.stage)}%"></div>
+                        </div>
+                        <span class="text-[10px] text-slate-400">${getStagePercentage(p.stage)}% stage</span>
+                    </td>
+                    <td class="py-3 px-3.5 text-center">
+                        ${harvestIndicator}
+                    </td>
+                    <td class="py-3 px-3.5 text-right flex justify-end gap-1.5">
+                        <button onclick="quickOpenYieldEntry(${p.no})" class="text-xs text-teal-700 bg-teal-50 hover:bg-teal-100 font-semibold border border-teal-200 px-2 py-1 rounded-lg transition-all" title="Record Harvest Mass">
+                            <i class="fa-solid fa-weight-scale"></i> Yield
+                        </button>
+                        <button onclick="quickUpdateStage(${p.no})" class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-all" title="Change Growth Stage">
+                            Stage
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getEnglishStageName(stage) {
+            switch(stage) {
+                case 'Perkecambahan': return 'Germination';
+                case 'Pertumbuhan Awal': return 'Early Growth';
+                case 'Pertumbuhan Maksimal': return 'Peak Growth';
+                case 'Pematangan': return 'Ripening';
+                case 'Siap Panen': return 'Ready for Harvest';
+                case 'Telah Dipanen': return 'Harvested';
+                default: return stage || 'Germination';
+            }
+        }
+
+        function getStagePercentage(stage) {
+            switch(stage) {
+                case 'Perkecambahan': return 20;
+                case 'Pertumbuhan Awal': return 40;
+                case 'Pertumbuhan Maksimal': return 60;
+                case 'Pematangan': return 80;
+                case 'Siap Panen': return 95;
+                case 'Telah Dipanen': return 100;
+                default: return 10;
+            }
+        }
+
+        function updateChartsData(locations) {
+            const stagesCount = {
+                'Germination': 0,
+                'Early Growth': 0,
+                'Peak Growth': 0,
+                'Ripening': 0,
+                'Ready Harvest': 0,
+                'Harvested': 0
+            };
+
+            plantsState.forEach(p => {
+                if (p.stage === 'Perkecambahan') stagesCount['Germination']++;
+                else if (p.stage === 'Pertumbuhan Awal') stagesCount['Early Growth']++;
+                else if (p.stage === 'Pertumbuhan Maksimal') stagesCount['Peak Growth']++;
+                else if (p.stage === 'Pematangan') stagesCount['Ripening']++;
+                else if (p.stage === 'Siap Panen') stagesCount['Ready Harvest']++;
+                else if (p.stage === 'Telah Dipanen') stagesCount['Harvested']++;
+            });
+
+            const locs = locations.length > 0 ? locations : ['Wing 1', 'Wing 2', 'Wing 3', 'Pathway', 'Farm House'];
+            const readyByLoc = locs.map(loc => plantsState.filter(p => p.location === loc && p.stage === 'Siap Panen').length);
+            const harvestedByLoc = locs.map(loc => plantsState.filter(p => p.location === loc && p.stage === 'Telah Dipanen').length);
+            const growingByLoc = locs.map(loc => plantsState.filter(p => p.location === loc && p.stage !== 'Siap Panen' && p.stage !== 'Telah Dipanen').length);
+
+            const doughnutEl = document.getElementById('growthDoughnutChart');
+            if (doughnutEl) {
+                const doughnutCtx = doughnutEl.getContext('2d');
+                if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+                doughnutChartInstance = new Chart(doughnutCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(stagesCount),
+                        datasets: [{
+                            data: Object.values(stagesCount),
+                            backgroundColor: ['#94a3b8', '#60a5fa', '#3b82f6', '#f59e0b', '#fbbf24', '#10b981'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+
+            const barEl = document.getElementById('locationBarChart');
+            if (barEl) {
+                const barCtx = barEl.getContext('2d');
+                if (barChartInstance) barChartInstance.destroy();
+
+                barChartInstance = new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: locs,
+                        datasets: [
+                            {
+                                label: 'Harvested 🧺',
+                                data: harvestedByLoc,
+                                backgroundColor: '#10b981',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Ready Harvest 🌾',
+                                data: readyByLoc,
+                                backgroundColor: '#f59e0b',
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'In Growth 🌱',
+                                data: growingByLoc,
+                                backgroundColor: '#60a5fa',
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: { position: 'top', labels: { boxWidth: 10 } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function filterFormByLocation(loc) {
+            activeFormLocationFilter = loc;
+            renderFormTable();
+        }
+
+        function onRadioChange(plantNo, stage) {
+            formSelections[plantNo] = stage;
+        }
+
+        function onNotesChange(plantNo, val) {
+            formNotes[plantNo] = val;
+        }
+
+        function renderFormTable() {
+            const tbody = document.getElementById('form-table-body');
+            const mobileContainer = document.getElementById('form-mobile-cards-container');
+            const formTabs = document.getElementById('form-location-tabs');
+            if (!tbody || !formTabs) return;
+
+            tbody.innerHTML = '';
+            if (mobileContainer) mobileContainer.innerHTML = '';
+
+            const locations = [...new Set(plantsState.map(p => p.location))].filter(Boolean);
+
+            formTabs.innerHTML = `
+                <button onclick="filterFormByLocation('ALL')" class="form-loc-btn shrink-0 ${activeFormLocationFilter === 'ALL' ? 'active bg-emerald-700 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-bold transition-all">
+                    All Locations (${plantsState.length})
+                </button>
+            `;
+            
+            locations.forEach(loc => {
+                const locCount = plantsState.filter(p => p.location === loc).length;
+                const isActive = activeFormLocationFilter === loc;
+                formTabs.innerHTML += `
+                    <button onclick="filterFormByLocation('${loc}')" class="form-loc-btn shrink-0 ${isActive ? 'active bg-emerald-700 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs font-bold transition-all">
+                        ${loc} (${locCount})
+                    </button>
+                `;
+            });
+
+            const filtered = plantsState.filter(p => activeFormLocationFilter === 'ALL' || p.location === activeFormLocationFilter);
+
+            const submitLabel = document.getElementById('submit-btn-label');
+            if (submitLabel) {
+                submitLabel.innerText = activeFormLocationFilter === 'ALL' 
+                    ? `Save All Locations (${filtered.length} Crops)` 
+                    : `Save Area [${activeFormLocationFilter}] (${filtered.length} Crops)`;
+            }
+
+            filtered.forEach(p => {
+                const currentFormStage = formSelections[p.no] || null;
+
+                const isPerkecambahan = currentFormStage === 'Perkecambahan';
+                const isAwal = currentFormStage === 'Pertumbuhan Awal';
+                const isMaks = currentFormStage === 'Pertumbuhan Maksimal';
+                const isPematangan = currentFormStage === 'Pematangan';
+                const isSiapPanen = currentFormStage === 'Siap Panen';
+                const isTelahDipanen = currentFormStage === 'Telah Dipanen';
+
+                // Desktop Row
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-200 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-medium text-slate-400 text-center">${p.no}</td>
+                    <td class="py-3 px-4 font-bold text-slate-800 text-xs sm:text-sm">${p.name}</td>
+                    <td class="py-3 px-3"><span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">${p.location}</span></td>
+                    
+                    <td class="py-3 px-3 text-center">
+                        <input type="radio" name="stage_${p.no}" value="Perkecambahan" ${isPerkecambahan ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Perkecambahan')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="radio" name="stage_${p.no}" value="Pertumbuhan Awal" ${isAwal ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Pertumbuhan Awal')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="radio" name="stage_${p.no}" value="Pertumbuhan Maksimal" ${isMaks ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Pertumbuhan Maksimal')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="radio" name="stage_${p.no}" value="Pematangan" ${isPematangan ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Pematangan')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-center bg-amber-50/70 border-l border-amber-200">
+                        <input type="radio" name="stage_${p.no}" value="Siap Panen" ${isSiapPanen ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Siap Panen')" class="w-4 h-4 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-center bg-emerald-50/70 border-l border-emerald-200">
+                        <input type="radio" name="stage_${p.no}" value="Telah Dipanen" ${isTelahDipanen ? 'checked' : ''} onchange="onRadioChange(${p.no}, 'Telah Dipanen')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                    </td>
+
+                    <td class="py-3 px-4">
+                        <input type="text" id="notes_${p.no}" value="${formNotes[p.no] || ''}" placeholder="Notes..." 
+                               oninput="onNotesChange(${p.no}, this.value)"
+                               class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Mobile Friendly Touch Card
+                if (mobileContainer) {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start border-b border-slate-200 pb-2">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400">#${p.no}</span>
+                                <h4 class="font-bold text-slate-800 text-sm">${p.name}</h4>
+                            </div>
+                            <span class="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">${p.location}</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">Select Stage:</label>
+                            <select onchange="onRadioChange(${p.no}, this.value)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <option value="" ${!currentFormStage ? 'selected' : ''}>-- Select Stage --</option>
+                                <option value="Perkecambahan" ${isPerkecambahan ? 'selected' : ''}>🌱 Germination</option>
+                                <option value="Pertumbuhan Awal" ${isAwal ? 'selected' : ''}>🌿 Early Growth</option>
+                                <option value="Pertumbuhan Maksimal" ${isMaks ? 'selected' : ''}>🌳 Peak Growth</option>
+                                <option value="Pematangan" ${isPematangan ? 'selected' : ''}>🍅 Ripening</option>
+                                <option value="Siap Panen" ${isSiapPanen ? 'selected' : ''}>🌾 Ready for Harvest</option>
+                                <option value="Telah Dipanen" ${isTelahDipanen ? 'selected' : ''}>🧺 Harvested</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">Notes:</label>
+                            <input type="text" value="${formNotes[p.no] || ''}" placeholder="Field note..." 
+                                   oninput="onNotesChange(${p.no}, this.value)"
+                                   class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                    `;
+                    mobileContainer.appendChild(card);
+                }
+            });
+        }
+
+        async function submitWeeklyInspection() {
+            const dateVal = document.getElementById('input-inspection-date')?.value;
+            const inspectorVal = document.getElementById('input-inspector-name')?.value;
+
+            const targetPlants = activeFormLocationFilter === 'ALL'
+                ? plantsState
+                : plantsState.filter(p => p.location === activeFormLocationFilter);
+
+            if (targetPlants.length === 0) {
+                showModalNotification("Warning", "No crops found for the selected location to submit.", "amber");
+                return;
+            }
+
+            let inspectedCount = 0;
+            targetPlants.forEach(p => {
+                const selectedStage = formSelections[p.no];
+                if (selectedStage) {
+                    p.stage = selectedStage;
+                    inspectedCount++;
+                }
+                if (formNotes[p.no]) {
+                    p.notes = formNotes[p.no];
+                }
+            });
+
+            saveStateToLocalStorage();
+
+            const locationLabel = activeFormLocationFilter === 'ALL' ? 'All Locations' : activeFormLocationFilter;
+            const logEntry = {
+                id: Date.now(),
+                date: dateVal || new Date().toISOString().split('T')[0],
+                location: locationLabel,
+                inspector: inspectorVal || 'Kaura Field Team',
+                totalPlants: targetPlants.length,
+                readyCount: targetPlants.filter(p => p.stage === 'Siap Panen').length,
+                harvestedCount: targetPlants.filter(p => p.stage === 'Telah Dipanen').length,
+                snapshot: JSON.parse(JSON.stringify(targetPlants))
+            };
+
+            historyLogs.unshift(logEntry);
+            localStorage.setItem('kaura_history_logs', JSON.stringify(historyLogs));
+
+            let sheetSyncMessage = "Data saved to browser memory.";
+            if (webhookUrl) {
+                try {
+                    const payload = {
+                        type: 'inspection',
+                        date: dateVal,
+                        inspector: inspectorVal,
+                        locationFilter: locationLabel,
+                        items: targetPlants.map(p => ({
+                            no: p.no,
+                            name: p.name,
+                            location: p.location,
+                            perkecambahan: p.stage === 'Perkecambahan',
+                            pertumbuhanAwal: p.stage === 'Pertumbuhan Awal',
+                            pertumbuhanMaks: p.stage === 'Pertumbuhan Maksimal',
+                            pematangan: p.stage === 'Pematangan',
+                            siapPanen: p.stage === 'Siap Panen',
+                            telahDipanen: p.stage === 'Telah Dipanen',
+                            notes: p.notes
+                        }))
+                    };
+
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    sheetSyncMessage = `Data for area [${locationLabel}] (${targetPlants.length} crops) posted to Google Sheet Log_Monitoring!`;
+                } catch(e) {
+                    sheetSyncMessage = "Failed to reach Apps Script Webhook. Data stored in local storage.";
+                }
+            }
+
+            formSelections = {};
+            formNotes = {};
+
+            renderFormTable();
+
+            showModalNotification(
+                "Inspection Saved! 🎉",
+                `Weekly inspection results for area <strong>${locationLabel}</strong> (${inspectedCount} updated out of ${targetPlants.length} crops) by auditor <strong>${inspectorVal || 'Kaura Field Team'}</strong> have been saved.<br><br><span class="text-emerald-700 font-semibold">${sheetSyncMessage}</span>`,
+                "emerald"
+            );
+
+            renderDashboard();
+            renderHistoryLogs();
+        }
+
+        function populateYieldCropDropdown() {
+            const select = document.getElementById('yield-plant-select');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">-- Choose Crop to Harvest --</option>`;
+
+            plantsState.forEach(p => {
+                const readyBadge = p.stage === 'Siap Panen' ? ' 🌾 [READY]' : '';
+                select.innerHTML += `<option value="${p.no}">#${p.no} ${p.name} (${p.location})${readyBadge}</option>`;
+            });
+
+            if (currentVal) select.value = currentVal;
+        }
+
+        function onYieldPlantSelectChange() {
+            const select = document.getElementById('yield-plant-select');
+            const locInput = document.getElementById('yield-location');
+            if (!select || !locInput) return;
+
+            const plantNo = parseInt(select.value, 10);
+            const plant = plantsState.find(p => p.no === plantNo);
+            if (plant) {
+                locInput.value = plant.location;
+            } else {
+                locInput.value = '';
+            }
+        }
+
+        function quickOpenYieldEntry(plantNo) {
+            switchTab('yield');
+            setTimeout(() => {
+                const select = document.getElementById('yield-plant-select');
+                if (select) {
+                    select.value = plantNo;
+                    onYieldPlantSelectChange();
+                }
+                document.getElementById('yield-weight')?.focus();
+            }, 100);
+        }
+
+        async function submitHarvestYield(e) {
+            e.preventDefault();
+            const plantNo = parseInt(document.getElementById('yield-plant-select').value, 10);
+            const plant = plantsState.find(p => p.no === plantNo);
+            if (!plant) {
+                showNotification("⚠️ Please select a valid crop from the dropdown.");
+                return;
+            }
+
+            const yieldDate = document.getElementById('yield-date').value;
+            const weight = parseFloat(document.getElementById('yield-weight').value) || 0;
+            const harvester = document.getElementById('yield-harvester').value.trim() || 'Kaura Field Team';
+            const notes = document.getElementById('yield-notes').value.trim() || '-';
+
+            if (weight <= 0) {
+                showNotification("⚠️ Please enter a valid harvest weight (kg).");
+                return;
+            }
+
+            const yieldRecord = {
+                id: Date.now(),
+                date: yieldDate,
+                no: plant.no,
+                name: plant.name,
+                location: plant.location,
+                weight: weight,
+                harvester: harvester,
+                notes: notes
+            };
+
+            yieldLogs.unshift(yieldRecord);
+            localStorage.setItem('kaura_yield_logs', JSON.stringify(yieldLogs));
+
+            // Automatically set plant stage to Telah Dipanen
+            plant.stage = 'Telah Dipanen';
+            saveStateToLocalStorage();
+
+            let sheetSyncMessage = "Yield recorded in local browser memory.";
+            if (webhookUrl) {
+                try {
+                    const payload = {
+                        type: 'yield',
+                        date: yieldDate,
+                        no: plant.no,
+                        name: plant.name,
+                        location: plant.location,
+                        weight: weight,
+                        harvester: harvester,
+                        notes: notes
+                    };
+
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    sheetSyncMessage = `Yield entry (${weight} kg of ${plant.name}) successfully posted to Google Sheet Log_Panen!`;
+                } catch(err) {
+                    sheetSyncMessage = "Failed to reach Webhook. Yield stored locally.";
+                }
+            }
+
+            // Reset yield weight & notes inputs
+            document.getElementById('yield-weight').value = '';
+            document.getElementById('yield-notes').value = '';
+
+            renderYieldLogTable();
+            renderDashboard();
+
+            showModalNotification(
+                "Harvest Yield Recorded! 🧺",
+                `Successfully logged <strong>${weight} kg</strong> of <strong>${plant.name}</strong> (${plant.location}) on ${yieldDate}.<br><br><span class="text-teal-700 font-semibold">${sheetSyncMessage}</span>`,
+                "emerald"
+            );
+        }
+
+        function renderYieldLogTable() {
+            const tbody = document.getElementById('yield-log-table-body');
+            const totalBadge = document.getElementById('yield-total-badge');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            const totalMass = yieldLogs.reduce((sum, y) => sum + y.weight, 0);
+
+            if (totalBadge) totalBadge.innerText = `Total: ${totalMass.toFixed(1)} kg`;
+
+            if (yieldLogs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-slate-400 text-xs">
+                            No harvest yields recorded yet. Fill out the form on the left to add a record.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            yieldLogs.forEach(y => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-slate-500 font-medium">${y.date}</td>
+                    <td class="py-2.5 px-3 font-bold text-slate-800">${y.name}</td>
+                    <td class="py-2.5 px-3"><span class="bg-slate-100 px-2 py-0.5 rounded text-[11px]">${y.location}</span></td>
+                    <td class="py-2.5 px-3 text-right font-extrabold text-teal-700">${y.weight.toFixed(1)} kg</td>
+                    <td class="py-2.5 px-3 text-slate-500 text-xs">${y.harvester || 'Kaura Team'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearYieldLogs() {
+            yieldLogs = [];
+            localStorage.removeItem('kaura_yield_logs');
+            renderYieldLogTable();
+            renderDashboard();
+            showNotification("Local harvest yield records cleared.");
+        }
+
+        function quickUpdateStage(plantNo) {
+            const plant = plantsState.find(p => p.no === plantNo);
+            if (!plant) return;
+
+            document.getElementById('quick-plant-no').value = plant.no;
+            document.getElementById('quick-plant-title').innerText = `#${plant.no} - ${plant.name} (${plant.location})`;
+            document.getElementById('quick-plant-stage').value = plant.stage || 'Perkecambahan';
+            document.getElementById('quick-plant-notes').value = plant.notes && plant.notes !== '-' ? plant.notes : '';
+
+            document.getElementById('quick-update-modal')?.classList.remove('hidden');
+        }
+
+        function closeQuickUpdateModal() {
+            document.getElementById('quick-update-modal')?.classList.add('hidden');
+        }
+
+        function saveQuickUpdate() {
+            const plantNo = parseInt(document.getElementById('quick-plant-no').value, 10);
+            const plant = plantsState.find(p => p.no === plantNo);
+            if (!plant) return;
+
+            const newStage = document.getElementById('quick-plant-stage').value;
+            const newNotes = document.getElementById('quick-plant-notes').value.trim();
+
+            plant.stage = newStage;
+            plant.notes = newNotes || '-';
+
+            saveStateToLocalStorage();
+            renderDashboard();
+            renderFormTable();
+            closeQuickUpdateModal();
+            showNotification(`✅ Status for ${plant.name} updated to ${getEnglishStageName(newStage)}`);
+        }
+
+        function showModalNotification(title, message, theme = "emerald") {
+            const modal = document.getElementById('notification-modal');
+            const iconBg = document.getElementById('modal-icon-bg');
+            const icon = document.getElementById('modal-icon');
+            const titleEl = document.getElementById('modal-title');
+            const msgEl = document.getElementById('modal-message');
+
+            if (!modal) return;
+
+            if (theme === 'amber') {
+                iconBg.className = "w-16 h-16 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-3xl shadow-inner";
+                icon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                iconBg.className = "w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center text-3xl shadow-inner";
+                icon.className = "fa-solid fa-circle-check";
+            }
+
+            titleEl.innerText = title;
+            msgEl.innerHTML = message;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeNotificationModal() {
+            const modal = document.getElementById('notification-modal');
+            if (modal) modal.classList.add('hidden');
+            switchTab('dashboard');
+        }
+
+        function renderHistoryLogs() {
+            const container = document.getElementById('history-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (historyLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-xs sm:text-sm">
+                        No weekly inspection logs stored locally yet.
+                    </div>
+                `;
+                return;
+            }
+
+            historyLogs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:border-emerald-300 transition-all";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-xs sm:text-sm">Inspection ${log.location ? '[' + log.location + ']' : ''} - ${log.date}</h4>
+                            <p class="text-[11px] text-slate-500">Auditor: ${log.inspector || 'Kaura Field Team'} • Total: ${log.totalPlants} Crops</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <span class="bg-amber-100 text-amber-800 font-bold text-[11px] px-2.5 py-1 rounded-full border border-amber-200">
+                            🌾 ${log.readyCount} Ready Harvest
+                        </span>
+                        <span class="bg-emerald-100 text-emerald-800 font-bold text-[11px] px-2.5 py-1 rounded-full border border-emerald-200">
+                            🧺 ${log.harvestedCount || 0} Harvested
+                        </span>
+                        <button onclick="restoreHistorySnapshot(${log.id})" class="text-xs font-semibold bg-white text-slate-700 border border-slate-300 px-3 py-1 rounded-lg hover:bg-slate-100 transition-colors">
+                            Load Snapshot
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function restoreHistorySnapshot(id) {
+            const log = historyLogs.find(l => l.id === id);
+            if (log && log.snapshot) {
+                plantsState = JSON.parse(JSON.stringify(log.snapshot));
+                saveStateToLocalStorage();
+                renderDashboard();
+                renderFormTable();
+                showNotification(`⚠️ Inspection snapshot from ${log.date} loaded.`);
+                switchTab('dashboard');
+            }
+        }
+
+        function clearHistoryLogs() {
+            historyLogs = [];
+            localStorage.removeItem('kaura_history_logs');
+            renderHistoryLogs();
+            showNotification("Local inspection history cleared.");
+        }
+
+        function openAddPlantModal() {
+            document.getElementById('add-plant-modal')?.classList.remove('hidden');
+        }
+
+        function closeAddPlantModal() {
+            document.getElementById('add-plant-modal')?.classList.add('hidden');
+        }
+
+        function saveNewPlant() {
+            const name = document.getElementById('new-plant-name').value.trim();
+            const loc = document.getElementById('new-plant-loc').value.trim() || 'Wing 1';
+            const stage = document.getElementById('new-plant-stage').value;
+            const notes = document.getElementById('new-plant-notes').value.trim() || '-';
+
+            if (!name) {
+                showNotification("⚠️ Please enter crop name first.");
+                return;
+            }
+
+            const nextNo = plantsState.length > 0 ? Math.max(...plantsState.map(p => p.no)) + 1 : 1;
+            plantsState.push({ no: nextNo, name, location: loc, stage, notes });
+
+            saveStateToLocalStorage();
+            renderDashboard();
+            renderFormTable();
+            populateYieldCropDropdown();
+            closeAddPlantModal();
+            showNotification(`✅ Crop ${name} added successfully!`);
+
+            document.getElementById('new-plant-name').value = '';
+            document.getElementById('new-plant-notes').value = '';
+        }
+
+        function saveWebhookUrl() {
+            const url = document.getElementById('webhook-url-input').value.trim();
+            webhookUrl = url;
+            localStorage.setItem('kaura_webhook_url', url);
+            showNotification("✅ Apps Script Endpoint URL saved!");
+        }
+
+        function copyAppsScriptCode() {
+            const codeText = document.getElementById('apps-script-code').innerText;
+            navigator.clipboard.writeText(codeText).then(() => {
+                showNotification("📋 Apps Script code copied to clipboard!");
+            }).catch(() => {
+                document.execCommand('copy');
+                showNotification("📋 Apps Script code copied!");
+            });
+        }
+
+        function saveStateToLocalStorage() {
+            localStorage.setItem('kaura_plants_state', JSON.stringify(plantsState));
+        }
+
+        function showNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2.5 transition-all";
+            toast.innerHTML = `<span>${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
